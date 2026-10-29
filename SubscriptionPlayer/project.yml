@@ -1,0 +1,22 @@
+name: SubscriptionPlayer
+options:
+  deploymentTarget:
+    iOS: '15.6'
+settings:
+  SWIFT_VERSION: '5.0'
+targets:
+  SubscriptionPlayer:
+    type: application
+    platform: iOS
+    sources: [App]
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.subscriptionplayer.ios
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_KEY_CFBundleDisplayName: 订阅影院
+      INFOPLIST_KEY_UILaunchScreen_Generation: YES
+      TARGETED_DEVICE_FAMILY: '1,2'
+    info:
+      path: Info.plist
+      properties:
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
