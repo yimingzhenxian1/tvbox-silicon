@@ -1,0 +1,27 @@
+name: Build subscription player
+on:
+  workflow_dispatch:
+  push:
+    branches: [subscription-player-ios15]
+    paths: ['SubscriptionPlayer/**', '.github/workflows/subscription-player.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - name: Generate and build
+        working-directory: SubscriptionPlayer
+        run: |
+          xcodegen generate
+          xcodebuild -project SubscriptionPlayer.xcodeproj -scheme SubscriptionPlayer -sdk iphoneos -configuration Release -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          mkdir -p package/Payload
+          cp -R build/Build/Products/Release-iphoneos/SubscriptionPlayer.app package/Payload/
+          cd package
+          zip -r ../SubscriptionPlayer-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SubscriptionPlayer-unsigned
+          path: SubscriptionPlayer/SubscriptionPlayer-unsigned.ipa
