@@ -34,6 +34,11 @@ jobs:
           s = p.read_text()
           p.write_text(s.replace("arm64-apple-ios17.0", "arm64-apple-ios15.6"))
           PY
+      - name: Cache compiled FFmpeg
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/tvbox-ffmpeg
+          key: ios15-ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Scripts/build-apple-ffmpeg.sh') }}
       - name: Prepare media dependency
         run: bash Scripts/build-apple-ffmpeg.sh 2>&1 | tee build/ios15-audit/ffmpeg.log
       - name: Compile core for iOS 15.6
