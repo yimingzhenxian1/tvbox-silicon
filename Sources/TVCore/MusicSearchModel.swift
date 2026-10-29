@@ -26,7 +26,7 @@ import Observation
     private var generation = UUID()
     private struct Cached { var results: [MusicTrack]; var collections: [MusicCollection]; var created: Date }
     private var cache: [String: Cached] = [:]
-    static let debounce: Duration = .milliseconds(350)
+    static let debounceNanoseconds: UInt64 = 350_000_000
     static let cacheLifetime: TimeInterval = 10 * 60
 
     public init(catalogs: [any MusicCatalogSource]? = nil, health: MusicHealth = .shared, kind: MusicSearchKind = .songs) {
@@ -86,7 +86,7 @@ import Observation
         busy = true
         task = Task {
             if !immediately {
-                try? await Task.sleep(for: Self.debounce)
+                try? await Task.sleep(nanoseconds: Self.debounceNanoseconds)
                 guard !Task.isCancelled, self.generation == run else { return }
             }
             if let collectionKind = kind.collectionKind {
