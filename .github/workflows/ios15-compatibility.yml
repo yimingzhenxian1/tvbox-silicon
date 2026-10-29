@@ -1,6 +1,10 @@
 name: iOS 15 compatibility check
 on:
   workflow_dispatch:
+  push:
+    branches: [ios15-compatibility]
+    paths:
+      - '.github/workflows/ios15-compatibility.yml'
 permissions:
   contents: read
 jobs:
