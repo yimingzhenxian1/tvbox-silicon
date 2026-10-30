@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 
 /// Catalog identity only: an expiring stream URL or its authorization headers must
 /// never become the address used to resume a saved episode.
@@ -80,7 +80,7 @@ extension PlaybackHistoryEntry {
 
 /// Shared by the library and player, bounded and atomically persisted outside
 /// UserDefaults so a growing history does not hit its size limit.
-@MainActor @Observable public final class PlaybackHistory {
+@MainActor @Perceptible public final class PlaybackHistory {
     public static let shared = PlaybackHistory()
     public static let limit = 200
     public private(set) var entries: [PlaybackHistoryEntry] = []
@@ -92,11 +92,11 @@ extension PlaybackHistoryEntry {
     public init(file: URL? = nil, cache: MediaCache = .shared, defaults: UserDefaults = .standard) {
         self.cache = cache; self.defaults = defaults
         #if os(tvOS)
-        let directory = URL.cachesDirectory
+        let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         #else
-        let directory = URL.applicationSupportDirectory
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         #endif
-        self.file = file ?? directory.appending(path: "playback-history-v1.json")
+        self.file = file ?? directory.appendingPathComponent( "playback-history-v1.json")
         if let data = try? Data(contentsOf: self.file), data.count <= 2 * 1024 * 1024,
            let decoded = try? JSONDecoder().decode([PlaybackHistoryEntry].self, from: data) {
             var seen = Set<String>()

@@ -137,7 +137,7 @@ struct BilibiliCodeSignIn: View {
             let login = try await BilibiliQRLogin.start()
             self.login = login
             while !Task.isCancelled {
-                try await Task.sleep(for: .seconds(2))
+                try await Task.legacySleep(for: .seconds(2))
                 switch try await login.poll() {
                 case .waiting: continue
                 case .scanned: scanned = true

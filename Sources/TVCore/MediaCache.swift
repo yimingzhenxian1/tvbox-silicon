@@ -30,9 +30,9 @@ public final class MediaCache: @unchecked Sendable {
     public func prioritize(_ scopes: Set<String>) { lock.withLock { frequentScopes = scopes } }
     public var revision: UInt64 { lock.withLock { generation } }
 
-    public init(root: URL = URL.cachesDirectory.appending(path: "YingxiaMedia-v1"), budget: Int = 256 * 1024 * 1024) {
+    public init(root: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "YingxiaMedia-v1"), budget: Int = 256 * 1024 * 1024) {
         self.root = root; self.budget = max(0, budget)
-        if let data = try? Data(contentsOf: root.appending(path: "index.json")), data.count <= 4 * 1024 * 1024,
+        if let data = try? Data(contentsOf: root.appendingPathComponent( "index.json")), data.count <= 4 * 1024 * 1024,
            let loaded = try? JSONDecoder().decode([String: Entry].self, from: data) {
             entries = loaded.filter { $0.key.count == 64 && $0.key.allSatisfy { $0.isHexDigit } && $0.value.bytes >= 0 }
         }
@@ -47,7 +47,7 @@ public final class MediaCache: @unchecked Sendable {
         lock.withLock {
             let key = id(key, kind, scope)
             guard var entry = entries[key] else { return nil }
-            guard entry.expires > now, let data = try? Data(contentsOf: root.appending(path: key)), data.count == entry.bytes else {
+            guard entry.expires > now, let data = try? Data(contentsOf: root.appendingPathComponent( key)), data.count == entry.bytes else {
                 erase(key); persist(); return nil
             }
             let needsSave = now.timeIntervalSince(entry.used) > 60
@@ -63,7 +63,7 @@ public final class MediaCache: @unchecked Sendable {
             let key = id(key, kind, scope)
             do {
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-                try data.write(to: root.appending(path: key), options: .atomic)
+                try data.write(to: root.appendingPathComponent( key), options: .atomic)
                 entries[key] = Entry(kind: kind, scope: scope, bytes: data.count, expires: now.addingTimeInterval(ttl), used: now)
                 prune(now: now); persist()
                 return entries[key] != nil
@@ -94,7 +94,7 @@ public final class MediaCache: @unchecked Sendable {
                            catalogs: entries.values.filter { $0.kind == .catalog }.count)
         }
     }
-    private func erase(_ key: String) { entries[key] = nil; try? FileManager.default.removeItem(at: root.appending(path: key)) }
+    private func erase(_ key: String) { entries[key] = nil; try? FileManager.default.removeItem(at: root.appendingPathComponent( key)) }
     private func prune(now: Date) {
         for key in entries.keys.filter({ entries[$0]!.expires <= now }) { erase(key) }
         // Lookup scope is a work, not an episode. Retain only the last 20 successful work mappings.
@@ -112,6 +112,6 @@ public final class MediaCache: @unchecked Sendable {
     private func persist() {
         guard let data = try? JSONEncoder().encode(entries) else { return }
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        try? data.write(to: root.appending(path: "index.json"), options: .atomic)
+        try? data.write(to: root.appendingPathComponent( "index.json"), options: .atomic)
     }
 }

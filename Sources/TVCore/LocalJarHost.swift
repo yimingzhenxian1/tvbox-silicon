@@ -34,7 +34,7 @@ public actor LocalJarHost {
 
     public func request(site: Site, jarURL: URL, params: [String: String], http: HTTPClient, scriptOrigin: URL? = nil, configurationOrigin: URL? = nil, progress: PluginPreparation? = nil) async throws -> [String: JSONValue] {
         let trace = String(UUID().uuidString.prefix(8))
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         let context = "request=\(trace) source=\(site.key)"
         Diagnostics.shared.record(.info, "jar.request", "\(context) begin operation=\(params["ac"] ?? "home")")
         // A script origin selects the source's script runtime; without one this hosts a JAR.
@@ -119,7 +119,7 @@ public actor LocalJarHost {
             // retaining the cookie/profile instead of starting another empty process.
             if site.api == "csp_NewCzGuard", envelope["errorCode"]?.string == "source_http", envelope["status"]?.int == 403 {
                 Diagnostics.shared.record(.warning, "jar.retry", "\(context) HTTP 403 retry=1")
-                try await Task.sleep(for: .milliseconds(300))
+                try await Task.legacySleep(for: .milliseconds(300))
                 envelope = try await process.request(params, trace: trace)
             }
             try Task.checkCancellation()

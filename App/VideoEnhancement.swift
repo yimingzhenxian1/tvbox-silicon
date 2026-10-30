@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import AVKit
 import CoreMedia
@@ -72,26 +73,26 @@ private protocol EnhancementEngine: AnyObject, Sendable {
 }
 
 /// One per playback session: follows the player's item and owns the layer the surfaces show.
-@MainActor @Observable final class VideoEnhancer {
+@MainActor @Perceptible final class VideoEnhancer {
     /// What is on screen now: processed frames drawn over AVKit's picture.
     private(set) var status = VideoEnhancementStatus()
     /// A line for logs and QA: the processors running, frame counts and timing.
     private(set) var summary = "off"
-    @ObservationIgnored let layer = AVSampleBufferDisplayLayer()
-    @ObservationIgnored private weak var player: AVPlayer?
-    @ObservationIgnored private var engine: (any EnhancementEngine)?
-    @ObservationIgnored private var item: AVPlayerItem?
-    @ObservationIgnored private var output: AVPlayerItemVideoOutput?
-    @ObservationIgnored private var itemObservation: NSKeyValueObservation?
-    @ObservationIgnored private var jumpObserver: NSObjectProtocol?
-    @ObservationIgnored private var options = VideoEnhancementOptions()
-    @ObservationIgnored private var displaySize = CGSize.zero
+    @PerceptionIgnored let layer = AVSampleBufferDisplayLayer()
+    @PerceptionIgnored private weak var player: AVPlayer?
+    @PerceptionIgnored private var engine: (any EnhancementEngine)?
+    @PerceptionIgnored private var item: AVPlayerItem?
+    @PerceptionIgnored private var output: AVPlayerItemVideoOutput?
+    @PerceptionIgnored private var itemObservation: NSKeyValueObservation?
+    @PerceptionIgnored private var jumpObserver: NSObjectProtocol?
+    @PerceptionIgnored private var options = VideoEnhancementOptions()
+    @PerceptionIgnored private var displaySize = CGSize.zero
     /// The frames' format, for asking the TV for a display mode.
-    @ObservationIgnored private var format: CMFormatDescription?
-    @ObservationIgnored private var announced: String?
-    @ObservationIgnored private var displayState = ""
+    @PerceptionIgnored private var format: CMFormatDescription?
+    @PerceptionIgnored private var announced: String?
+    @PerceptionIgnored private var displayState = ""
     /// Called when what the screen should do changes: smoothing, its rate, or the first known format.
-    @ObservationIgnored var onDisplayChange: (() -> Void)?
+    @PerceptionIgnored var onDisplayChange: (() -> Void)?
 
     /// Smoothed frames need the screen at `rate`; nil when the screen should follow the video as usual.
     var displayRequest: (rate: Double, format: CMFormatDescription)? {
@@ -129,7 +130,7 @@ private protocol EnhancementEngine: AnyObject, Sendable {
         Task { [weak self] in
             while !Task.isCancelled, self != nil {
                 self?.refresh()
-                try? await Task.sleep(for: .milliseconds(250))
+                try? await Task.legacySleep(for: .milliseconds(250))
             }
         }
     }
@@ -269,7 +270,7 @@ private protocol EnhancementEngine: AnyObject, Sendable {
                     manager.preferredDisplayCriteria = criteria
                     return
                 }
-                try? await Task.sleep(for: .milliseconds(250))
+                try? await Task.legacySleep(for: .milliseconds(250))
             }
         }
     }

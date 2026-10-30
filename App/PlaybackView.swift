@@ -1,8 +1,9 @@
+import Perception
 import SwiftUI
 import AVKit
 import TVCore
 
-@MainActor @Observable final class PlaybackSession {
+@MainActor @Perceptible final class PlaybackSession {
     /// A queue, so the next episode can wait behind this one and play straight on.
     let player: AVQueuePlayer
     /// Upscaling and 60 fps smoothing, drawn over AVKit's picture when switched on in Settings.
@@ -278,7 +279,7 @@ import TVCore
         guard !rangeRetried, Self.ignoredRange(failure) else { return false }
         rangeRetried = true
         detachItem(); observation = nil
-        Diagnostics.shared.record(.warning, "player", "range retry host=\(url.host() ?? "-") \(failure.map(Self.describe) ?? "-")")
+        Diagnostics.shared.record(.warning, "player", "range retry host=\(url.host ?? "-") \(failure.map(Self.describe) ?? "-")")
         configure(channel, url: url, generation: active)
         return true
     }
@@ -425,7 +426,7 @@ import TVCore
         } catch { Diagnostics.shared.failure("player", "audio session", error); self.error = error.localizedDescription }
         #endif
         if !url.isFileURL {
-            note(L10n.text("Connecting to %@", Self.server(CloudStreams.transfer(for: url)?.host ?? Remux.transfer(for: url)?.host ?? url.host())))
+            note(L10n.text("Connecting to %@", Self.server(CloudStreams.transfer(for: url)?.host ?? Remux.transfer(for: url)?.host ?? url.host)))
         }
         let item = makeItem(channel, url: url)
         watch(item, channel: channel, url: url, generation: activeGeneration)
@@ -485,7 +486,7 @@ import TVCore
     private func repackage(_ item: AVPlayerItem, channel: Channel, url: URL, generation active: UUID) {
         player.pause(); loading = true
         note(L10n.text("Repackaging the video for this device"))
-        Diagnostics.shared.record(.warning, "player", "no picture; repackaging host=\(url.host() ?? "-")")
+        Diagnostics.shared.record(.warning, "player", "no picture; repackaging host=\(url.host ?? "-")")
         preparation = Task { [weak self] in
             let source: RemuxSource?
             if url.scheme == CloudStreams.scheme { source = await CloudStreams.remuxSource(for: url) }
@@ -493,7 +494,7 @@ import TVCore
             else {
                 do { source = try await Remux.httpSource(url, headers: channel.headers) }
                 catch {
-                    if !Task.isCancelled { Diagnostics.shared.failure("player", "remux link host=\(url.host() ?? "-")", error) }
+                    if !Task.isCancelled { Diagnostics.shared.failure("player", "remux link host=\(url.host ?? "-")", error) }
                     source = nil
                 }
             }
@@ -534,7 +535,7 @@ import TVCore
                     self.checkingPicture = Self.repackagable(url)
                     self.restorePositionIfNeeded(item)
                     self.loading = self.pendingResume != nil || self.restoringPosition
-                    Diagnostics.shared.record(.info, "player", "ready host=\(self.transfer.host ?? channel.url.host() ?? "-")")
+                    Diagnostics.shared.record(.info, "player", "ready host=\(self.transfer.host ?? channel.url.host ?? "-")")
                     Task { [weak self] in
                         let refused = await Self.recordVideoFormat(item)
                         guard let self, self.generation == activeGeneration, self.item === item, self.checkingPicture else { return }
@@ -546,7 +547,7 @@ import TVCore
                 if status == .failed {
                     if self.retryRange(after: failure, channel: channel, url: url, generation: activeGeneration) { return }
                     if self.retryHDR(after: failure, channel: channel, url: url, generation: activeGeneration) { return }
-                    Diagnostics.shared.record(.error, "player", "failed host=\(self.transfer.host ?? channel.url.host() ?? "-") \(self.transfer.failure.map { "upstream=\($0) " } ?? "")\(detail) \(self.failureContext(channel, url: url, item: item))")
+                    Diagnostics.shared.record(.error, "player", "failed host=\(self.transfer.host ?? channel.url.host ?? "-") \(self.transfer.failure.map { "upstream=\($0) " } ?? "")\(detail) \(self.failureContext(channel, url: url, item: item))")
                     if self.retryLive(after: failure) { return }
                     // A refused link is usually an expired one: say so in plain words rather than the system's.
                     let expired = refused || [401, 403, 404, 410].contains(self.transfer.httpStatus ?? 0)
@@ -563,7 +564,7 @@ import TVCore
             let message = failure?.localizedDescription
             Task { @MainActor [weak self] in
                 guard let self, self.generation == activeGeneration else { return }
-                Diagnostics.shared.record(.error, "player", "interrupted host=\(self.transfer.host ?? channel.url.host() ?? "-") at=\(Int(self.player.currentTime().seconds.isFinite ? self.player.currentTime().seconds : -1))s \(failure.map(Self.describe) ?? "-") \(self.failureContext(channel, url: url, item: item))")
+                Diagnostics.shared.record(.error, "player", "interrupted host=\(self.transfer.host ?? channel.url.host ?? "-") at=\(Int(self.player.currentTime().seconds.isFinite ? self.player.currentTime().seconds : -1))s \(failure.map(Self.describe) ?? "-") \(self.failureContext(channel, url: url, item: item))")
                 if self.retryLive(after: failure) { return }
                 self.error = message ?? L10n.text("Playback was interrupted."); self.loading = false
             }
@@ -592,7 +593,7 @@ import TVCore
                 // The first frame lands a beat after playback starts; keep the artwork until then, so no black flashes between.
                 if playing, !self.showsPicture {
                     Task { @MainActor [weak self] in
-                        try? await Task.sleep(for: .milliseconds(350))
+                        try? await Task.legacySleep(for: .milliseconds(350))
                         guard let self, self.generation == activeGeneration, self.player.timeControlStatus == .playing else { return }
                         self.showsPicture = true
                     }
@@ -603,14 +604,14 @@ import TVCore
             let muted = player.isMuted
             Task { @MainActor [weak self] in self?.muted = muted }
         }
-        let origin = channel.url.host()
+        let origin = channel.url.host
         sampler = Task { [weak self] in
             var history: [(date: Date, bytes: Int64)] = []
             var tick = 0
             while !Task.isCancelled {
                 guard self?.sample(&history, tick: tick, origin: origin, generation: activeGeneration) == true else { return }
                 tick += 1
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.legacySleep(for: .seconds(1))
             }
         }
     }
@@ -648,7 +649,7 @@ import TVCore
             next.required = [current, transfer.required].compactMap { $0 }.min()
         }
         // The Mac plays HLS through a local proxy; name the real server instead.
-        let segmentHost = events.last?.uri.flatMap { URL(string: $0)?.host() }
+        let segmentHost = events.last?.uri.flatMap { URL(string: $0)?.host }
         next.host = segmentHost.flatMap { ["127.0.0.1", "localhost"].contains($0) ? nil : $0 } ?? cloud?.host ?? origin
         #if os(macOS)
         if let upstream {
@@ -675,7 +676,7 @@ import TVCore
                 "danmakuState": catalogDanmaku.automaticState, "cached": catalogDanmaku.fromCache,
                 "introEnd": skipSettings.introEnd, "outroLength": skipSettings.outroLength,
                 "requestedResumePosition": requestedResumePosition ?? 0, "restoredPosition": restoredPosition ?? 0]
-            try? JSONSerialization.data(withJSONObject: report).write(to: URL.cachesDirectory.appending(path: "qa-playback.json"), options: .atomic)
+            try? JSONSerialization.data(withJSONObject: report).write(to: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "qa-playback.json"), options: .atomic)
         }
         #endif
         if (loading || buffering) && tick % 5 == 0 {
@@ -700,7 +701,7 @@ import TVCore
     /// its format, and AVPlayer's own last network error (often the HTTP status of one segment).
     private func failureContext(_ channel: Channel, url: URL, item: AVPlayerItem?) -> String {
         let scheme = url.scheme ?? "-"
-        let via = ["http", "https"].contains(scheme) ? (["127.0.0.1", "localhost"].contains(url.host() ?? "") ? "local-proxy" : "direct") : scheme
+        let via = ["http", "https"].contains(scheme) ? (["127.0.0.1", "localhost"].contains(url.host ?? "") ? "local-proxy" : "direct") : scheme
         let format = channel.url.pathExtension.isEmpty ? "-" : String(channel.url.pathExtension.lowercased().prefix(5))
         var text = "source=\(channel.historyContext?.sourceKey ?? "-") live=\(isLive) via=\(via) format=\(format)"
         if let event = item?.errorLog()?.events.last {
@@ -776,8 +777,8 @@ import TVCore
         guard let requested = pendingResume, !restoringPosition, !checkingPicture, item.status == .readyToPlay,
               let target = PlaybackHistoryEntry.resumeTarget(requested, duration: item.duration.seconds) else { return }
         restoringPosition = true
-        let pattern: Duration.TimeFormatStyle.Pattern = target >= 3600 ? .hourMinuteSecond : .minuteSecond
-        note(L10n.text("Jumping to %@", Duration.seconds(Int(target)).formatted(.time(pattern: pattern))))
+        let pattern: LegacyDuration.TimeFormatStyle.Pattern = target >= 3600 ? .hourMinuteSecond : .minuteSecond
+        note(L10n.text("Jumping to %@", LegacyDuration.seconds(Int(target)).formatted(.time(pattern: pattern))))
         let activeGeneration = generation
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
             Task { @MainActor [weak self] in
@@ -835,7 +836,7 @@ extension PlaybackSession {
             let proxied = address
             address = CloudStreams.register(media) { await EmbeddedJarHost.shared.directMedia(proxied) }
             prepared.url = address
-            Diagnostics.shared.record(.info, "player", "cloud direct host=\(media.url.host() ?? "-") length=\(media.length)")
+            Diagnostics.shared.record(.info, "player", "cloud direct host=\(media.url.host ?? "-") length=\(media.length)")
         } else if let media = await CatPawOpen.proxiedMedia(address, headers: channel.headers) {
             try Task.checkCancellation()
             // The bundle downloads each request with 10 to 16 threads of its own: reading ahead on six at once ran its
@@ -884,7 +885,7 @@ extension PlaybackSession {
             else {
                 do { source = try await Remux.httpSource(address, headers: channel.headers) }
                 catch {
-                    if !Task.isCancelled { Diagnostics.shared.failure("player", "remux link host=\(address.host() ?? "-")", error) }
+                    if !Task.isCancelled { Diagnostics.shared.failure("player", "remux link host=\(address.host ?? "-")", error) }
                     source = nil
                 }
             }
@@ -899,7 +900,7 @@ extension PlaybackSession {
             let adapter = HLSProxy(headers: channel.headers)
             do { prepared.url = try await adapter.start(url: address) }
             catch {
-                if !Task.isCancelled { Diagnostics.shared.record(.error, "player", "proxy failed host=\(channel.url.host() ?? "-") \(Self.describe(error))") }
+                if !Task.isCancelled { Diagnostics.shared.record(.error, "player", "proxy failed host=\(channel.url.host ?? "-") \(Self.describe(error))") }
                 throw error
             }
             prepared.adapter = adapter
@@ -1201,7 +1202,7 @@ extension PlaybackSession {
     /// "Getting it ready", with the place playback picks up from when there is one.
     static func preparing(_ resume: Double?) -> String {
         guard let resume, resume.isFinite, resume >= 5 else { return L10n.text("Getting it ready") }
-        let pattern: Duration.TimeFormatStyle.Pattern = resume >= 3600 ? .hourMinuteSecond : .minuteSecond
-        return L10n.text("Getting it ready · from %@", Duration.seconds(Int(resume)).formatted(.time(pattern: pattern)))
+        let pattern: LegacyDuration.TimeFormatStyle.Pattern = resume >= 3600 ? .hourMinuteSecond : .minuteSecond
+        return L10n.text("Getting it ready · from %@", LegacyDuration.seconds(Int(resume)).formatted(.time(pattern: pattern)))
     }
 }

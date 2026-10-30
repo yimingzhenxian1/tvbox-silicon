@@ -14,7 +14,7 @@ final class SerializedPluginWorker: @unchecked Sendable {
         let json: String
         let search: Bool
         let id = UUID().uuidString
-        let queued = ContinuousClock.now
+        let queued = LegacyClock.now
         var waiters: [UUID: CheckedContinuation<String, Error>] = [:]
         var startHandlers: [UUID: @Sendable () -> Void] = [:]
         var started = false
@@ -144,7 +144,7 @@ final class SerializedPluginWorker: @unchecked Sendable {
     }
 
     private func perform(_ work: Work) {
-        let began = ContinuousClock.now
+        let began = LegacyClock.now
         lock.lock()
         work.started = true
         let startHandlers = Array(work.startHandlers.values); work.startHandlers.removeAll()

@@ -101,7 +101,7 @@ public struct DanmakuResolver: Sendable {
             // dmku first; the backup only when dmku fails or has no comments for the page.
             var servers = [("dmku", dmkuServer, [URLQueryItem(name: "ac", value: "dm"), .init(name: "url", value: safe.absoluteString)])]
             if let backupServer {
-                servers.append((backupServer.host() ?? "backup", backupServer, [.init(name: "type", value: "json"), .init(name: "id", value: safe.absoluteString)]))
+                servers.append((backupServer.host ?? "backup", backupServer, [.init(name: "type", value: "json"), .init(name: "id", value: safe.absoluteString)]))
             }
             var comments: [CatalogDanmakuComment] = [], source = "dmku", failure: Error? = nil, answered = false
             for (name, server, query) in servers {

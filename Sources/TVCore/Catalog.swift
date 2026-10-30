@@ -180,7 +180,7 @@ public struct CatalogClient: Sendable {
     }
     /// Every answer, or failure, feeds the source's `SourceHealth`.
     private func request(_ params: [String: String]) async throws -> [String: JSONValue] {
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         do {
             let json = try await perform(params)
             await SourceHealth.shared.record(site, origin: origin, seconds: started.duration(to: .now).seconds, error: nil)

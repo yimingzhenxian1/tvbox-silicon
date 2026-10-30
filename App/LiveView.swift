@@ -145,7 +145,7 @@ struct ChannelListView: View {
                 #endif
                 if !channels.isEmpty { filterBar } else if waiting { ChipSkeletonRow() }
                 if waiting {
-                    LoadingCard { .server(source.url.host(), title: L10n.text("Loading channels…")) }
+                    LoadingCard { .server(source.url.host, title: L10n.text("Loading channels…")) }
                     ChannelSkeletonGrid()
                 }
                 if let error {
@@ -197,7 +197,7 @@ struct ChannelListView: View {
         catch is CancellationError { }
         catch {
             guard !Task.isCancelled else { return }
-            Diagnostics.shared.failure("live", "playlist host=\(source.url.host() ?? "-")", error)
+            Diagnostics.shared.failure("live", "playlist host=\(source.url.host ?? "-")", error)
             self.error = error.localizedDescription
         }
     }
@@ -270,7 +270,7 @@ private struct TVChannelGuide: View {
             }
 
             if loading {
-                LoadingCard(maxWidth: LoadingCard.compact) { .server(source.url.host(), title: L10n.text("Loading channels…")) }
+                LoadingCard(maxWidth: LoadingCard.compact) { .server(source.url.host, title: L10n.text("Loading channels…")) }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error {
                 ErrorStateCard(title: L10n.text("Unable to Load Channels"),

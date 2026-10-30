@@ -419,7 +419,7 @@ public struct MusicResolver: Sendable {
                 throw MusicProviderError.differentRecording(duration)
             }
             await cache.put(candidate.id, .init(stream: stream, probe: probe))
-            Diagnostics.shared.record(.info, "music", "\(candidate.provider.rawValue) \(candidate.platform.rawValue) host=\(stream.url.host() ?? "-") \(probe.format.label) \(probe.completeness.rawValue) in \(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+            Diagnostics.shared.record(.info, "music", "\(candidate.provider.rawValue) \(candidate.platform.rawValue) host=\(stream.url.host ?? "-") \(probe.format.label) \(probe.completeness.rawValue) in \(String(format: "%.1f", Date().timeIntervalSince(start)))s")
             return (candidate, .success((stream, probe)), Date().timeIntervalSince(start))
         } catch {
             let failure = MusicProviderError(error)

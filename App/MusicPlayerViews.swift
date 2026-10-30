@@ -357,7 +357,7 @@ struct MusicLyricLines: View {
         .scrollPosition(id: $scrolled, anchor: .center)
         // Once the lines are laid out: set as the view appeared, the position was dropped, and
         // reopening the player left the lyrics at the top until the next line.
-        .task { try? await Task.sleep(for: .milliseconds(60)); scrolled = current }
+        .task { try? await Task.legacySleep(for: .milliseconds(60)); scrolled = current }
         .onChange(of: current) { _, index in
             guard let index else { return }
             withAnimation(.smooth(duration: 0.45)) { scrolled = index }

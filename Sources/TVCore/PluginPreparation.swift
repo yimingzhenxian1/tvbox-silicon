@@ -90,7 +90,7 @@ public final class PluginPreparation: @unchecked Sendable {
                     previous = data
                     self?.report(Stage(rawValue: value.stage) ?? .preparing, converted: value.converted, reused: value.reused, host: value.host)
                 }
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.legacySleep(for: .milliseconds(500))
             }
         }
     }

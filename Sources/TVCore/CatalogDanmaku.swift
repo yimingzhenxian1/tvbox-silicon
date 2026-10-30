@@ -212,7 +212,7 @@ public struct CatalogDanmakuClient: Sendable {
     }
 
     private func request(_ path: String, query: [URLQueryItem] = []) async throws -> Data {
-        var parts = URLComponents(url: server.appending(path: "api/v2/" + path), resolvingAgainstBaseURL: false)!
+        var parts = URLComponents(url: server.appendingPathComponent( "api/v2/" + path), resolvingAgainstBaseURL: false)!
         parts.queryItems = query.isEmpty ? nil : query
         var request = URLRequest(url: parts.url!, timeoutInterval: 25)
         request.setValue("application/json", forHTTPHeaderField: "Accept")

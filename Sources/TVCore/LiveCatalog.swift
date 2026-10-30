@@ -101,7 +101,7 @@ public enum LiveCatalog {
 
     /// The platform and room of a room channel's address.
     public static func room(_ url: URL) -> (platform: LivePlatform, id: String)? {
-        guard url.host() == "room", let platform = LivePlatform(scheme: url.scheme) else { return nil }
+        guard url.host == "room", let platform = LivePlatform(scheme: url.scheme) else { return nil }
         let id = url.lastPathComponent
         return id.isEmpty || id == "/" ? nil : (platform, id)
     }
@@ -132,7 +132,7 @@ public enum LiveCatalog {
     static func playable(_ channel: Channel, session: URLSession) async -> Channel {
         guard channel.url.pathExtension.lowercased() == "flv",
               let url = await HuyaLive.hlsAddress(relay: channel.url, headers: channel.headers, session: session) else { return channel }
-        Diagnostics.shared.record(.info, "player", "huya flv as hls relay=\(channel.url.host() ?? "-") line=\(url.host() ?? "-")")
+        Diagnostics.shared.record(.info, "player", "huya flv as hls relay=\(channel.url.host ?? "-") line=\(url.host ?? "-")")
         return Channel(name: channel.name, group: channel.group, url: url, logo: channel.logo, headers: channel.headers, skipScope: channel.skipScope,
                        historyContext: channel.historyContext, resumePosition: channel.resumePosition)
     }

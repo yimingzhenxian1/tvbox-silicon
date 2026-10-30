@@ -81,8 +81,8 @@ build_slice() {
 
 build_slice macos-arm64 macosx aarch64 arm64-apple-macos14.0
 build_slice macos-x86_64 macosx x86_64 x86_64-apple-macos14.0
-build_slice ios iphoneos aarch64 arm64-apple-ios17.0
-build_slice ios-simulator iphonesimulator aarch64 arm64-apple-ios17.0-simulator
+build_slice ios iphoneos aarch64 arm64-apple-ios15.6
+build_slice ios-simulator iphonesimulator aarch64 arm64-apple-ios15.6-simulator
 build_slice tvos appletvos aarch64 arm64-apple-tvos17.0
 build_slice tvos-simulator appletvsimulator aarch64 arm64-apple-tvos17.0-simulator
 # END

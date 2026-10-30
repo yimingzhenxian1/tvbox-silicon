@@ -46,7 +46,7 @@ public enum Remux {
         RemuxStore.shared.add(session)
         do {
             let base = try await RemuxServer.shared.base()
-            return base.appending(path: "\(session.id)/master.m3u8")
+            return base.appendingPathComponent( "\(session.id)/master.m3u8")
         } catch {
             RemuxStore.shared.remove(session.id)?.close()
             throw error
@@ -102,7 +102,7 @@ public enum Remux {
         let counter = CloudCounter()
         let probe = try await RangeConnection.open(url, headers: headers, from: 0, through: 1, configuration: configuration, counter: counter)
         if probe.last > 1 {
-            Diagnostics.shared.record(.info, "remux", "link sends the rest of the file host=\(url.host() ?? "-") length=\(probe.length)")
+            Diagnostics.shared.record(.info, "remux", "link sends the rest of the file host=\(url.host ?? "-") length=\(probe.length)")
             return StreamingRemuxSource(url: url, headers: headers, configuration: configuration, counter: counter, first: probe)
         }
         probe.close()
@@ -114,8 +114,8 @@ public enum Remux {
     public static func fileSource(_ url: URL) throws -> RemuxSource { try FileRemuxSource(url) }
 
     private static func identifier(_ url: URL) -> String? {
-        guard ["127.0.0.1", "localhost"].contains(url.host() ?? "") else { return nil }
-        let parts = url.path().split(separator: "/")
+        guard ["127.0.0.1", "localhost"].contains(url.host ?? "") else { return nil }
+        let parts = url.path.split(separator: "/")
         return parts.count == 3 ? String(parts[1]) : nil
     }
     private static func session(_ url: URL) -> RemuxSession? { identifier(url).flatMap(RemuxStore.shared.session) }
@@ -185,7 +185,7 @@ final class StreamingRemuxSource: RemuxSource, @unchecked Sendable {
         }
     }
 
-    var transfer: (received: Int64, host: String?)? { (counter.value, url.host()) }
+    var transfer: (received: Int64, host: String?)? { (counter.value, url.host) }
 
     func close() async {
         lock.withLock {
@@ -336,7 +336,7 @@ final class RangeConnection: NSObject, URLSessionDataDelegate, @unchecked Sendab
                     completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let range = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Range")
-        guard status == 206, let match = range?.firstMatch(of: /^bytes (\d+)-(\d+)\/(\d+)$/), Int64(match.1) == first,
+        guard status == 206, let match = range?.legacyFirstMatch(#"^bytes (\d+)-(\d+)\/(\d+)$"#), Int64(match.1) == first,
               let end = Int64(match.2), let total = Int64(match.3), end < total else {
             completionHandler(.cancel)
             self.end(status >= 400 ? TVError.http(status) : TVError.unsupported("no byte ranges"))

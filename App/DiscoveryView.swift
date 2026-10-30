@@ -479,7 +479,7 @@ struct GlobalSearchView: View {
             if trending.isEmpty { trending = await SearchSuggestions.trending() }
             return
         }
-        try? await Task.sleep(for: .milliseconds(250))
+        try? await Task.legacySleep(for: .milliseconds(250))
         guard !Task.isCancelled else { return }
         let titles = await SearchSuggestions.titles(for: typed)
         if !Task.isCancelled { suggested = titles }
@@ -519,7 +519,7 @@ private struct SearchActivityList: View {
                         Text(remaining).foregroundStyle(.secondary).monospacedDigit().fixedSize()
                     }
                     if let runStart {
-                        Text(Duration.seconds(max(0, Int(timeline.date.timeIntervalSince(runStart.date))))
+                        Text(LegacyDuration.seconds(max(0, Int(timeline.date.timeIntervalSince(runStart.date))))
                                 .formatted(.time(pattern: .minuteSecond)))
                             .foregroundStyle(.secondary).monospacedDigit().fixedSize()
                     }
@@ -535,7 +535,7 @@ private struct SearchActivityList: View {
                                 Text(item.name).fontWeight(.semibold).lineLimit(1)
                                 Text(status(item.snapshot)).foregroundStyle(.secondary).lineLimit(1)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                Text(Duration.seconds(max(0, Int(timeline.date.timeIntervalSince(item.snapshot.started))))
+                                Text(LegacyDuration.seconds(max(0, Int(timeline.date.timeIntervalSince(item.snapshot.started))))
                                         .formatted(.time(pattern: .minuteSecond)))
                                     .monospacedDigit().foregroundStyle(.secondary)
                                     .gridColumnAlignment(.trailing)
@@ -1054,7 +1054,7 @@ struct ScrollStrip<Content: View>: View {
                 }
                 let drag = tracking.drag
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(120))
+                    try? await Task.legacySleep(for: .milliseconds(120))
                     drag.active = false
                 }
             }

@@ -48,7 +48,7 @@ struct MusicNowPlayingLyrics: View {
                                  startPoint: .top, endPoint: .bottom))
             // Once the lines are laid out: set as the panel appeared, the position was dropped, and
             // reopening the player left the lyrics at the top until the next line.
-            .task { try? await Task.sleep(for: .milliseconds(60)); scrolled = music.currentLyric }
+            .task { try? await Task.legacySleep(for: .milliseconds(60)); scrolled = music.currentLyric }
             .onChange(of: music.currentLyric) { _, index in
                 guard let index else { return }
                 withAnimation(.smooth(duration: 0.5)) { scrolled = index }

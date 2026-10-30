@@ -19,7 +19,7 @@ public enum BilibiliStreams {
     public static func files(for url: URL, quality: Int? = nil) -> DashFiles? {
         guard url.scheme == scheme else { return nil }
         let sources = PlaylistStore.shared.sources(url)
-        let named = url.lastPathComponent.firstMatch(of: /^master-(\d+)\.m3u8$/).flatMap { Int($0.1) }
+        let named = url.lastPathComponent.legacyFirstMatch(#"^master-(\d+)\.m3u8$"#).flatMap { Int($0.1) }
         if let wanted = named ?? quality, let match = sources.first(where: { $0.quality == wanted }) { return match }
         return named == nil ? sources.first : nil
     }
@@ -108,7 +108,7 @@ public enum BilibiliStreams {
                       streamInfo: streamInfo[item.quality] ?? "", cid: cid, duration: duration)
         }
         PlaylistStore.shared.add(files, token: token, qualities: qualities, sources: sources)
-        Diagnostics.shared.record(.info, "bilibili", "dash aid=\(aid) cid=\(cid) qualities=\(video.map { "\($0.0.quality)/\($0.0.codecs)" }.joined(separator: ",")) audio=\(sound?.0.codecs ?? "-") host=\(video[0].1.url.host() ?? "-")")
+        Diagnostics.shared.record(.info, "bilibili", "dash aid=\(aid) cid=\(cid) qualities=\(video.map { "\($0.0.quality)/\($0.0.codecs)" }.joined(separator: ",")) audio=\(sound?.0.codecs ?? "-") host=\(video[0].1.url.host ?? "-")")
         guard let master = URL(string: address("master.m3u8")) else { return nil }
         DanmakuSource.register(master, bilibiliCID: cid, duration: duration)
         return master
@@ -271,7 +271,7 @@ struct Representation: Sendable {
               let index = range(base?["index_range"]?.string ?? base?["indexRange"]?.string) else { return nil }
         let addresses = [json["base_url"] ?? json["baseUrl"]].compactMap { $0?.string } + (json["backup_url"]?.array ?? json["backupUrl"]?.array ?? []).compactMap(\.string)
         func peer(_ url: URL) -> Bool {
-            let host = url.host() ?? ""
+            let host = url.host ?? ""
             return host.contains("mcdn.bilivideo") || host.contains("szbdyd.com") || host.contains("mountaintoys") || (url.port != nil && url.port != 443)
         }
         let urls = addresses.compactMap { URL(string: $0) }.filter { $0.scheme == "https" || $0.scheme == "http" }
@@ -352,15 +352,15 @@ final class PlaylistStore: @unchecked Sendable {
         }
     }
     func sources(_ url: URL) -> [DashFiles] {
-        guard let token = url.host() else { return [] }
+        guard let token = url.host else { return [] }
         return lock.withLock { files[token] ?? [] }
     }
     func qualities(_ url: URL) -> [StreamQuality] {
-        guard let token = url.host() else { return [] }
+        guard let token = url.host else { return [] }
         return lock.withLock { choices[token] ?? [] }
     }
     func playlist(_ url: URL) -> String? {
-        guard let token = url.host() else { return nil }
+        guard let token = url.host else { return nil }
         return lock.withLock { streams[token]?[url.lastPathComponent] }
     }
 }

@@ -1,10 +1,11 @@
+import Perception
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 import TVCore
 
 /// Tells people when a new version is out and, after they update, what it brings.
 /// Reads the release feed the website publishes; the bundled copy covers offline launches.
-@MainActor @Observable final class Updates {
+@MainActor @Perceptible final class Updates {
     enum Sheet: Identifiable {
         /// Newer releases to install, newest first.
         case available([ReleaseFeed.Release])

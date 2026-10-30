@@ -238,7 +238,7 @@ struct DanmakuListView: View {
             while !Task.isCancelled {
                 let time = player.currentTime().seconds
                 if time.isFinite { now = time }
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.legacySleep(for: .milliseconds(500))
             }
         }
     }
@@ -391,7 +391,7 @@ struct DanmakuListView: View {
     #endif
 
     static func clock(_ time: Double) -> String {
-        Duration.seconds(Int(time)).formatted(.time(pattern: time >= 3600 ? .hourMinuteSecond : .minuteSecond))
+        LegacyDuration.seconds(Int(time)).formatted(.time(pattern: time >= 3600 ? .hourMinuteSecond : .minuteSecond))
     }
 
     /// The comment's own colour; the usual white as a quiet grey so coloured ones stand out.

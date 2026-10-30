@@ -45,10 +45,10 @@ enum QALaunch {
         if let path = UserDefaults.standard.string(forKey: "qaWindowSnapshot") {
             Task { @MainActor in
                 let size = (UserDefaults.standard.string(forKey: "qaWindowSize") ?? "").split(separator: "x").compactMap { Double($0) }
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.legacySleep(for: .seconds(1))
                 if size.count == 2 { NSApp.windows.first { $0.isVisible }?.setContentSize(NSSize(width: size[0], height: size[1])) }
                 let delay = UserDefaults.standard.object(forKey: "qaSnapshotDelay") == nil ? 20 : UserDefaults.standard.double(forKey: "qaSnapshotDelay")
-                try? await Task.sleep(for: .seconds(delay))
+                try? await Task.legacySleep(for: .seconds(delay))
                 guard let view = NSApp.windows.first(where: { $0.isVisible })?.contentView?.superview,
                       let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
                 view.cacheDisplay(in: view.bounds, to: rep)
@@ -82,7 +82,7 @@ enum QALaunch {
         if let section { store.section = section }
         if let page, page.hasPrefix("search:") {
             // Let the tab settle first: switching sections suspends a search that is already running.
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.legacySleep(for: .seconds(2))
             store.searchVideos(String(page.dropFirst(7)))
         }
         // `-qaPlayLive [<platform>:]<room>` opens a live room (Bilibili by default) in the player.
@@ -155,7 +155,7 @@ enum QALaunch {
                 store.playing = store.catalogChannel(channel, video: video, episode: episode, client: client, resumePosition: start)
             } catch {
                 store.error = error.localizedDescription
-                let file = URL.cachesDirectory.appending(path: "qa-playback.json")
+                let file = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "qa-playback.json")
                 try? JSONSerialization.data(withJSONObject: ["source": key, "stage": "resolve", "error": error.localizedDescription]).write(to: file, options: .atomic)
             }
         }
@@ -327,12 +327,12 @@ enum QASweep {
     struct Failure: LocalizedError { let message: String; var errorDescription: String? { message } }
 
     static var enabled: Bool { UserDefaults.standard.bool(forKey: "qaSweep") }
-    static let folder = URL.cachesDirectory.appending(path: "qa-sweep")
+    static let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "qa-sweep")
 
     static func run(_ config: Subscription) async {
         await PluginLocator.shared.use(config.pluginArchives)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let file = folder.appending(path: "results.json")
+        let file = folder.appendingPathComponent( "results.json")
         let fresh = UserDefaults.standard.bool(forKey: "qaSweepFresh")
         let previous = fresh ? [] : ((try? JSONDecoder().decode([Record].self, from: Data(contentsOf: file))) ?? [])
         let recorder = Recorder(file: file, records: previous)
@@ -434,7 +434,7 @@ enum QASweep {
                 catch { if gate.claim() { continuation.resume(throwing: error) } }
             }
             Task {
-                try? await Task.sleep(for: .seconds(seconds))
+                try? await Task.legacySleep(for: .seconds(seconds))
                 if gate.claim() { work.cancel(); continuation.resume(throwing: Timeout(seconds: seconds)) }
             }
         }
@@ -453,7 +453,7 @@ enum QASweep {
             status("\(records.count) done, \(records.filter(\.ok).count) ok, last \(record.key)")
         }
         func status(_ text: String) {
-            try? Data(text.utf8).write(to: file.deletingLastPathComponent().appending(path: "status.txt"), options: .atomic)
+            try? Data(text.utf8).write(to: file.deletingLastPathComponent().appendingPathComponent( "status.txt"), options: .atomic)
         }
     }
 }

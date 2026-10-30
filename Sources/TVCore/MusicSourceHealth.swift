@@ -6,7 +6,7 @@ import Foundation
 /// being offline never count. Also keeps each service's request budget (GD Studio allows 50
 /// requests per 5 minutes) across search and resolution.
 public actor MusicHealth {
-    public static let shared = MusicHealth(file: URL.cachesDirectory.appending(path: "music-health.json"))
+    public static let shared = MusicHealth(file: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "music-health.json"))
 
     public enum Operation: String, Codable, Sendable { case search, resolve, play }
 
@@ -102,7 +102,7 @@ public actor MusicHealth {
     private func scheduleSave() {
         guard let file, saveTask == nil else { return }
         saveTask = Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.legacySleep(for: .seconds(2))
             self.save(to: file)
         }
     }

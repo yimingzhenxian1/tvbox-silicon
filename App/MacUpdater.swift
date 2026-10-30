@@ -1,3 +1,4 @@
+import Perception
 #if os(macOS)
 import AppKit
 import Sparkle
@@ -10,7 +11,7 @@ import TVCore
 ///
 /// With automatic installs on (the default), Sparkle downloads new versions in the background and puts them
 /// in place when the app quits; the sheet's button then just relaunches.
-@MainActor @Observable final class MacUpdater: NSObject {
+@MainActor @Perceptible final class MacUpdater: NSObject {
     enum Phase: Equatable {
         case idle
         case checking
@@ -30,20 +31,20 @@ import TVCore
     }
     var canCancel: Bool { cancellation != nil }
 
-    @ObservationIgnored private var updater: SPUUpdater!
-    @ObservationIgnored private let feed: URL
-    @ObservationIgnored private let defaults: UserDefaults
+    @PerceptionIgnored private var updater: SPUUpdater!
+    @PerceptionIgnored private let feed: URL
+    @PerceptionIgnored private let defaults: UserDefaults
     /// Someone pressed Install: say yes to each of Sparkle's questions until the app relaunches.
-    @ObservationIgnored private var installRequested = false
-    @ObservationIgnored private var cancellation: (() -> Void)?
+    @PerceptionIgnored private var installRequested = false
+    @PerceptionIgnored private var cancellation: (() -> Void)?
     /// Installs an update Sparkle downloaded on its own, without asking again.
-    @ObservationIgnored private var installNow: (() -> Void)?
+    @PerceptionIgnored private var installNow: (() -> Void)?
     /// Closes the release sheet: macOS doesn't quit an app while a sheet is open, so the relaunch waits for it.
-    @ObservationIgnored var closeSheet: (() -> Void)?
-    @ObservationIgnored private var terminationRetries = 0
+    @PerceptionIgnored var closeSheet: (() -> Void)?
+    @PerceptionIgnored private var terminationRetries = 0
     /// Sparkle has told the installer to relaunch: from here on, quitting the app installs the update and reopens it.
-    @ObservationIgnored private var relaunching = false
-    @ObservationIgnored private var relaunchWatchdog: Task<Void, Never>?
+    @PerceptionIgnored private var relaunching = false
+    @PerceptionIgnored private var relaunchWatchdog: Task<Void, Never>?
     private static let pendingKey = "pendingUpdateRelaunch"
 
     /// Nil in App Store builds, which the App Store updates, and in debug builds, whose update would replace
@@ -54,7 +55,7 @@ import TVCore
         guard let value = defaults.string(forKey: "qaAppcast"), let url = URL(string: value) else { return nil }
         let updater = MacUpdater(feed: url, defaults: defaults)
         // `-qaInstallUpdate 1` presses Install and Relaunch a few seconds after launch.
-        if defaults.bool(forKey: "qaInstallUpdate") { Task { try? await Task.sleep(for: .seconds(4)); updater.install() } }
+        if defaults.bool(forKey: "qaInstallUpdate") { Task { try? await Task.legacySleep(for: .seconds(4)); updater.install() } }
         return updater
         #else
         return MacUpdater(feed: ReleaseFeed.appcastAddress, defaults: defaults)
@@ -127,7 +128,7 @@ import TVCore
     /// Closes the release sheet, then any sheet still attached: macOS doesn't quit an app while one is open.
     private func closeSheets() async {
         closeSheet?()
-        try? await Task.sleep(for: .milliseconds(400))
+        try? await Task.legacySleep(for: .milliseconds(400))
         for window in NSApp.windows { if let sheet = window.attachedSheet { window.endSheet(sheet) } }
     }
 
@@ -144,14 +145,14 @@ import TVCore
     private func watchRelaunch() {
         guard relaunchWatchdog == nil else { return }
         relaunchWatchdog = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.legacySleep(for: .seconds(3))
             guard let self, phase == .installing else { self?.relaunchWatchdog = nil; return }
             Diagnostics.shared.record(.warning, "updates", "Still open 3 s after Relaunch: \(Self.blockers()) relaunching=\(relaunching)")
             if relaunching {
                 await closeSheets()
                 NSApp.terminate(nil)
             }
-            try? await Task.sleep(for: .seconds(9))
+            try? await Task.legacySleep(for: .seconds(9))
             relaunchWatchdog = nil
             guard phase == .installing else { return }
             Diagnostics.shared.record(.error, "updates", "Relaunch to update stalled: still open 12 s after Relaunch: \(Self.blockers()) relaunching=\(relaunching)")

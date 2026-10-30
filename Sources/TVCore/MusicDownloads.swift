@@ -1,6 +1,6 @@
 import CryptoKit
 import Foundation
-import Observation
+import Perception
 
 /// A song kept for listening offline: the audio from the channel that played it best, with its
 /// lyrics and its cover.
@@ -44,7 +44,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
 /// Downloaded songs and the queue that fetches them, beside the episode downloads. Each song is
 /// resolved as playing it would be (best channel, lossless first) and saved by the same transfer
 /// as an episode, so a stopped download continues and an expired link is resolved again.
-@MainActor @Observable public final class MusicDownloadLibrary {
+@MainActor @Perceptible public final class MusicDownloadLibrary {
     public static let shared = MusicDownloadLibrary()
     /// A song is one file, so a couple at a time is enough to keep the connection busy.
     static let simultaneous = 2
@@ -53,10 +53,10 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     /// Albums and playlists downloaded from their pages, most recent first.
     public private(set) var collections: [MusicDownloadedCollection] = []
     public let root: URL
-    @ObservationIgnored private let session: URLSession
-    @ObservationIgnored private var running: [String: (run: UUID, task: Task<Void, Never>, meter: DownloadMeter)] = [:]
-    @ObservationIgnored private var ticker: Task<Void, Never>?
-    @ObservationIgnored private var savedAt = Date.distantPast
+    @PerceptionIgnored private let session: URLSession
+    @PerceptionIgnored private var running: [String: (run: UUID, task: Task<Void, Never>, meter: DownloadMeter)] = [:]
+    @PerceptionIgnored private var ticker: Task<Void, Never>?
+    @PerceptionIgnored private var savedAt = Date.distantPast
 
     public init(root: URL = MusicDownloadLibrary.defaultRoot) {
         self.root = root
@@ -76,7 +76,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     }
 
     /// Inside the episode downloads' folder, so the system keeps (or on tvOS clears) both alike.
-    public nonisolated static var defaultRoot: URL { DownloadLibrary.defaultRoot.appending(path: "Music") }
+    public nonisolated static var defaultRoot: URL { DownloadLibrary.defaultRoot.appendingPathComponent( "Music") }
 
     public var completed: [MusicDownload] { items.filter { $0.status == .completed } }
     public var pending: [MusicDownload] { items.filter(\.isPending) }
@@ -193,7 +193,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
         else if ticker == nil {
             ticker = Task { [weak self] in
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(1))
+                    try? await Task.legacySleep(for: .seconds(1))
                     self?.tick()
                 }
             }
@@ -216,7 +216,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
                 // Lyrics and the cover are extras: the song is saved without them if they fail.
                 let platform = self?.item(id: id)?.candidate?.platform
                 if let lyrics = await MusicLyricsLoader().lyrics(for: track, playing: platform), let data = try? JSONEncoder().encode(lyrics) {
-                    try? data.write(to: folder.appending(path: "lyrics.json"), options: .atomic)
+                    try? data.write(to: folder.appendingPathComponent( "lyrics.json"), options: .atomic)
                 }
                 await Self.saveArtwork(track.artwork)
                 let size = DownloadLibrary.allocatedSize(folder)
@@ -285,7 +285,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     public func localSelection(for track: MusicTrack) -> MusicPlaybackSelection? {
         guard let item = item(for: track), item.status == .completed, let media = item.media,
               let candidate = item.candidate, let probe = item.probe else { return nil }
-        let file = folder(item.id).appending(path: media)
+        let file = folder(item.id).appendingPathComponent( media)
         guard FileManager.default.fileExists(atPath: file.path) else { return nil }
         return MusicPlaybackSelection(track: track, candidate: candidate, stream: ResolvedMusicStream(url: file), probe: probe,
                                       degraded: !probe.format.isLossless, attempts: [], untried: [])
@@ -294,7 +294,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     /// The lyrics saved with a song, if it had any.
     public func lyrics(for track: MusicTrack) -> MusicLyrics? {
         guard item(for: track)?.status == .completed,
-              let data = try? Data(contentsOf: folder(track.id).appending(path: "lyrics.json")) else { return nil }
+              let data = try? Data(contentsOf: folder(track.id).appendingPathComponent( "lyrics.json")) else { return nil }
         return try? JSONDecoder().decode(MusicLyrics.self, from: data)
     }
 
@@ -302,7 +302,7 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     /// the network. Songs of one album share it.
     public nonisolated static func artworkFile(for url: URL) -> URL {
         let digest = SHA256.hash(data: Data(url.absoluteString.utf8)).prefix(16).map { String(format: "%02x", $0) }.joined()
-        return defaultRoot.appending(path: "Artwork").appending(path: digest)
+        return defaultRoot.appendingPathComponent( "Artwork").appendingPathComponent( digest)
     }
 
     private nonisolated static func saveArtwork(_ url: URL?) async {
@@ -316,12 +316,12 @@ public struct MusicDownloadedCollection: Codable, Identifiable, Hashable, Sendab
     // MARK: Persistence
 
     /// Song IDs hold ":"; the folder name keeps only letters and digits plain.
-    private func folder(_ id: String) -> URL { root.appending(path: id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id) }
-    private var index: URL { root.appending(path: "music-downloads.json") }
-    private var collectionIndex: URL { root.appending(path: "music-collections.json") }
+    private func folder(_ id: String) -> URL { root.appendingPathComponent( id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id) }
+    private var index: URL { root.appendingPathComponent( "music-downloads.json") }
+    private var collectionIndex: URL { root.appendingPathComponent( "music-collections.json") }
     private func hasMedia(_ item: MusicDownload) -> Bool {
         guard let media = item.media else { return false }
-        return FileManager.default.fileExists(atPath: folder(item.id).appending(path: media).path)
+        return FileManager.default.fileExists(atPath: folder(item.id).appendingPathComponent( media).path)
     }
 
     private func load() {

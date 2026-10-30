@@ -1,7 +1,7 @@
 import Foundation
-import Observation
+import Perception
 
-@MainActor @Observable public final class SearchModel {
+@MainActor @Perceptible public final class SearchModel {
     public var draft = ""
     public var selectedSource: String?
     public var results: [SearchSourceResult] = []

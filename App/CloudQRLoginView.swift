@@ -122,7 +122,7 @@ struct CloudQRLoginView: View {
             let login = try await CloudDriveQRLogin.start(drive)
             self.login = login
             while !Task.isCancelled {
-                try await Task.sleep(for: .seconds(2))
+                try await Task.legacySleep(for: .seconds(2))
                 switch try await login.poll() {
                 case .waiting: continue
                 case .expired: expired = true; return

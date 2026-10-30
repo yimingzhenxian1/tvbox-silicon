@@ -31,7 +31,7 @@ public struct VKeysProvider: MusicStreamProvider {
             if message.contains("频繁") || message.contains("限流") { throw MusicProviderError.rateLimited(until: nil) }
             throw MusicProviderError.noResource
         }
-        guard let address = json[path: "data", "url"]?.string, let url = URL(string: address), url.host() != nil else {
+        guard let address = json[path: "data", "url"]?.string, let url = URL(string: address), url.host != nil else {
             throw MusicProviderError.noResource
         }
         return ResolvedMusicStream(url: url, claimedQuality: json[path: "data", "kbps"]?.string, resolvedAt: now, upstream: "vkeys")
@@ -58,7 +58,7 @@ public struct GDStudioProvider: MusicStreamProvider {
     }
 
     static func parse(_ json: JSONValue, now: Date = Date()) throws -> ResolvedMusicStream {
-        guard let address = json["url"]?.string, !address.isEmpty, let url = URL(string: address), url.host() != nil else {
+        guard let address = json["url"]?.string, !address.isEmpty, let url = URL(string: address), url.host != nil else {
             if json["error"] != nil || json["msg"] != nil { throw MusicProviderError.invalidResponse("GD: \(json["error"]?.string ?? json["msg"]?.string ?? "")") }
             throw MusicProviderError.noResource
         }
@@ -98,7 +98,7 @@ public struct HYWProvider: MusicStreamProvider {
         case let code: throw MusicProviderError.invalidResponse("HYW code \(code.map(String.init) ?? "-")")
         }
         let address = json["url"]?.string ?? json[path: "data", "url"]?.string ?? json["data"]?.string
-        guard let address, let url = URL(string: address), url.host() != nil else { throw MusicProviderError.noResource }
+        guard let address, let url = URL(string: address), url.host != nil else { throw MusicProviderError.noResource }
         return ResolvedMusicStream(url: url, claimedQuality: json["actualQuality"]?.string ?? json["quality"]?.string, resolvedAt: now,
                                    upstream: json["source"]?.string.map { "hyw:" + $0 } ?? "hyw")
     }
@@ -129,7 +129,7 @@ public struct NianxinProvider: MusicStreamProvider {
     static func parse(_ json: JSONValue, level: String, now: Date = Date()) throws -> ResolvedMusicStream {
         guard json["code"]?.int == 200 else { throw MusicProviderError.invalidResponse("Nianxin code \(json["code"]?.string ?? "-")") }
         guard let address = json[path: "data", "url"]?.string ?? json["url"]?.string, !address.isEmpty,
-              let url = URL(string: address), url.host() != nil else { throw MusicProviderError.noResource }
+              let url = URL(string: address), url.host != nil else { throw MusicProviderError.noResource }
         return ResolvedMusicStream(url: url, claimedQuality: level, resolvedAt: now, upstream: "nianxin")
     }
 }
@@ -161,7 +161,7 @@ public struct XinghaiProvider: MusicStreamProvider {
             throw MusicProviderError.noResource
         }
         guard let address = json["url"]?.string ?? json[path: "data", "url"]?.string, !address.isEmpty,
-              let url = URL(string: address), url.host() != nil else { throw MusicProviderError.noResource }
+              let url = URL(string: address), url.host != nil else { throw MusicProviderError.noResource }
         return ResolvedMusicStream(url: url, claimedQuality: json["quality"]?.string, resolvedAt: now, upstream: "xinghai")
     }
 }

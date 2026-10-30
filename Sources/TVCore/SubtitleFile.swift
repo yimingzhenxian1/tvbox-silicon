@@ -39,14 +39,14 @@ enum SubtitleFile {
 
     /// The files' cues, fetched together. One that fails, holds no cues or isn't there within `timeout` is left out.
     static func load(_ subtitles: [ExternalSubtitle], headers: [String: String], session: URLSession = .shared,
-                     timeout: Duration = .seconds(8)) async -> [Track] {
+                     timeout: LegacyDuration = .seconds(8)) async -> [Track] {
         let wanted = Array(subtitles.prefix(8))
         guard !wanted.isEmpty else { return [] }
         return await withTaskGroup(of: (Int, Track?)?.self) { group in
             for (index, subtitle) in wanted.enumerated() {
                 group.addTask { (index, await fetch(subtitle, headers: headers, session: session)) }
             }
-            group.addTask { try? await Task.sleep(for: timeout); return nil }
+            group.addTask { try? await Task.legacySleep(for: timeout); return nil }
             var loaded: [Int: Track] = [:], remaining = wanted.count
             while remaining > 0, let next = await group.next() {
                 guard let (index, track) = next else {
@@ -64,12 +64,12 @@ enum SubtitleFile {
     private static func fetch(_ subtitle: ExternalSubtitle, headers: [String: String], session: URLSession) async -> Track? {
         var request = URLRequest(url: subtitle.url, timeoutInterval: 8)
         // A plugin's loopback proxy wants none; a drive's CDN wants the video's.
-        if !["127.0.0.1", "localhost"].contains(subtitle.url.host() ?? "") { headers.forEach { request.setValue($1, forHTTPHeaderField: $0) } }
+        if !["127.0.0.1", "localhost"].contains(subtitle.url.host ?? "") { headers.forEach { request.setValue($1, forHTTPHeaderField: $0) } }
         do {
             let (data, response) = try await session.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             guard (200..<300).contains(status), data.count <= largest else {
-                Diagnostics.shared.record(.warning, "subtitles", "file host=\(subtitle.url.host() ?? "-") status=\(status) bytes=\(data.count)")
+                Diagnostics.shared.record(.warning, "subtitles", "file host=\(subtitle.url.host ?? "-") status=\(status) bytes=\(data.count)")
                 return nil
             }
             let cues = Self.cues(data, format: subtitle.format)
@@ -77,7 +77,7 @@ enum SubtitleFile {
             return cues.isEmpty ? nil : Track(name: subtitle.name, language: subtitle.language, cues: cues)
         } catch {
             if !(error is CancellationError), (error as? URLError)?.code != .cancelled {
-                Diagnostics.shared.record(.warning, "subtitles", "file host=\(subtitle.url.host() ?? "-") \(error.localizedDescription)")
+                Diagnostics.shared.record(.warning, "subtitles", "file host=\(subtitle.url.host ?? "-") \(error.localizedDescription)")
             }
             return nil
         }
@@ -119,7 +119,7 @@ enum SubtitleFile {
             current = nil; lines = []
         }
         for line in text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n").components(separatedBy: "\n") {
-            if line.contains("-->"), let match = line.firstMatch(of: timing) {
+            if line.contains("-->"), let match = line.legacyFirstMatch(timing) {
                 flush()
                 current = (time(match.1), time(match.2))
             } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -146,18 +146,18 @@ enum SubtitleFile {
             guard line.hasPrefix("Dialogue:"), let start = fields.firstIndex(of: "start"), let end = fields.firstIndex(of: "end") else { continue }
             let values = line.dropFirst("Dialogue:".count).split(separator: ",", maxSplits: fields.count - 1, omittingEmptySubsequences: false)
             guard values.count == fields.count,
-                  let from = String(values[start]).firstMatch(of: clock), let to = String(values[end]).firstMatch(of: clock) else { continue }
+                  let from = String(values[start]).legacyFirstMatch(clock), let to = String(values[end]).legacyFirstMatch(clock) else { continue }
             // FFmpeg's ASS event, which `cueText` reads: ReadOrder, Layer, Style, Name, margins, Effect, then Text.
             guard let value = RemuxPlan.cueText(Data(("0,0,,,0,0,0,," + values[values.count - 1]).utf8), codec: "ass") else { continue }
-            let (first, last) = (time(from.output), time(to.output))
+            let (first, last) = (time(from.0), time(to.0))
             cues.append(RemuxPlan.Cue(start: first, end: max(last, first), text: value))
         }
         return cues
     }
 
     /// `01:02:03,456`, `02:03.456` (WebVTT) or `1:02:03.45` (ASS).
-    nonisolated(unsafe) private static let clock = /(?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?/
-    nonisolated(unsafe) private static let timing = /^\s*((?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?)\s*-->\s*((?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?)/
+    nonisolated(unsafe) private static let clock = #"(?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?"#
+    nonisolated(unsafe) private static let timing = #"^\s*((?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?)\s*-->\s*((?:\d+:)?\d{1,2}:\d{1,2}(?:[.,]\d{1,3})?)"#
 
     /// Microseconds of a clock time.
     static func time(_ value: Substring) -> Int64 {

@@ -36,7 +36,7 @@ public struct AListServer: Codable, Hashable, Identifiable, Sendable {
             parts.path = ""; parts.query = nil; parts.fragment = nil
             guard let address = parts.string else { return nil }
             let login = entry["login"] as? [String: Any]
-            return AListServer(name: (entry["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? url.host() ?? text, address: address,
+            return AListServer(name: (entry["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? url.host ?? text, address: address,
                                root: Self.folder(path), username: login?["username"] as? String ?? "", password: login?["password"] as? String ?? "",
                                folderPassword: entry["password"] as? String ?? "")
         }
@@ -128,7 +128,7 @@ public actor AList {
     /// The AList server at `url`, or nil when nothing there answers like one. The API may be served
     /// under a path (`https://host/alist`); what follows it is the folder to start in.
     public static func probe(_ url: URL, session: URLSession = .shared) async -> AListServer? {
-        guard var parts = URLComponents(url: url, resolvingAgainstBaseURL: false), url.host() != nil else { return nil }
+        guard var parts = URLComponents(url: url, resolvingAgainstBaseURL: false), url.host != nil else { return nil }
         let segments = parts.path.split(separator: "/").map(String.init)
         parts.query = nil; parts.fragment = nil
         for depth in 0...min(segments.count, 2) {
@@ -140,7 +140,7 @@ public actor AList {
                   let answer = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                   answer["code"] as? Int == 200, let settings = answer["data"] as? [String: Any] else { continue }
             let title = (settings["site_title"] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
-            return AListServer(name: title.isEmpty || ["AList", "OpenList"].contains(title) ? url.host() ?? title : title,
+            return AListServer(name: title.isEmpty || ["AList", "OpenList"].contains(title) ? url.host ?? title : title,
                                address: base, root: AListServer.folder(segments.dropFirst(depth).joined(separator: "/")))
         }
         return nil
@@ -188,14 +188,14 @@ public actor AList {
             throw TVError.unsupported(L10n.text("%@ didn't return a link for this file. Try again.", server.name))
         }
         // Baidu's servers only answer its own client; FongMi's AList spider sends the same.
-        let headers = url.host()?.contains("baidupcs.com") == true ? ["User-Agent": "pan.baidu.com"] : [:]
+        let headers = url.host?.contains("baidupcs.com") == true ? ["User-Agent": "pan.baidu.com"] : [:]
         return CloudStreams.Source(url: url, headers: headers, length: size, name: name)
     }
 
     /// A server that doesn't know its public address names itself `localhost` in links; those go
     /// to the address the server was added with.
     static func reachable(_ link: URL, server: AListServer) -> URL {
-        guard ["localhost", "127.0.0.1", "0.0.0.0", "::1"].contains(link.host() ?? ""),
+        guard ["localhost", "127.0.0.1", "0.0.0.0", "::1"].contains(link.host ?? ""),
               let base = URLComponents(string: server.address), let host = base.host,
               !["localhost", "127.0.0.1"].contains(host),
               var parts = URLComponents(url: link, resolvingAgainstBaseURL: false) else { return link }

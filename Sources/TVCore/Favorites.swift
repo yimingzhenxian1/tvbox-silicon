@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 
 public enum FavoriteKind: String, Codable, Sendable {
     case live, video, episode, music, cloud
@@ -150,7 +150,7 @@ struct FavoriteDocument: Codable {
     var items: [FavoriteItem]
 }
 
-@MainActor @Observable public final class Favorites {
+@MainActor @Perceptible public final class Favorites {
     public private(set) var items: [FavoriteItem] = []
     public private(set) var persistenceError: String?
     private let defaults: UserDefaults

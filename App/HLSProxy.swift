@@ -99,7 +99,7 @@ actor HLSProxy {
             guard let response = reply as? HTTPURLResponse else { send(connection, code: 502, data: Data()); return }
             guard (200..<300).contains(response.statusCode) else {
                 // Pass the real status on, so AVPlayer and the loading card can tell an expired link from a dead server.
-                stats.failed(url.host(), status: response.statusCode, message: nil)
+                stats.failed(url.host, status: response.statusCode, message: nil)
                 send(connection, code: (400..<600).contains(response.statusCode) ? response.statusCode : 502, data: Data()); return
             }
             var raw = Data()
@@ -107,9 +107,9 @@ actor HLSProxy {
             var pending = 0
             for try await byte in stream {
                 raw.append(byte); pending += 1
-                if pending == 32 << 10 { stats.received(pending, from: url.host()); pending = 0 }
+                if pending == 32 << 10 { stats.received(pending, from: url.host); pending = 0 }
             }
-            stats.received(pending, from: url.host())
+            stats.received(pending, from: url.host)
             var data = raw
             var mime = response.mimeType ?? "application/octet-stream"
             if let playlist = String(data: raw, encoding: .utf8), playlist.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#EXTM3U") {
@@ -126,7 +126,7 @@ actor HLSProxy {
             }
             send(connection, code: code, data: data, mime: mime, extra: extra, head: fields[0] == "HEAD")
         } catch {
-            stats.failed(url.host(), status: nil, message: error.localizedDescription)
+            stats.failed(url.host, status: nil, message: error.localizedDescription)
             send(connection, code: 502, data: Data())
         }
     }

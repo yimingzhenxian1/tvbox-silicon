@@ -86,7 +86,7 @@ public enum DouyinHandoff {
         let key: Data
         public var id: String { "\(host):\(port)" }
         public init?(_ url: URL) {
-            guard url.scheme == DouyinHandoff.scheme, url.host() == DouyinHandoff.action,
+            guard url.scheme == DouyinHandoff.scheme, url.host == DouyinHandoff.action,
                   let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
                   let host = items.first(where: { $0.name == "host" })?.value, !host.isEmpty,
                   let port = items.first(where: { $0.name == "port" })?.value.flatMap(UInt16.init),
@@ -120,7 +120,7 @@ public enum DouyinHandoff {
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         var failure: Error = TVError.unsupported(L10n.text("The Apple TV didn't answer. Make sure both are on the same Wi-Fi and try again."))
         for attempt in 0..<4 {
-            if attempt > 0 { try await Task.sleep(for: .seconds(2)) }
+            if attempt > 0 { try await Task.legacySleep(for: .seconds(2)) }
             do {
                 let (_, response) = try await URLSession.shared.data(for: request)
                 switch (response as? HTTPURLResponse)?.statusCode {

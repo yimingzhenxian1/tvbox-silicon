@@ -1,8 +1,8 @@
 import Foundation
-import Observation
+import Perception
 
 /// Owns the requested catalog location so retries and overlapping requests stay consistent.
-@MainActor @Observable public final class CatalogBrowser {
+@MainActor @Perceptible public final class CatalogBrowser {
     public enum Request: Equatable, Sendable {
         case home
         case list(category: String?, query: String, page: Int)

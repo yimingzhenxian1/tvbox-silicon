@@ -26,7 +26,7 @@ public struct JarReport: Sendable {
 public actor JarRuntime {
     public init() {}
     public func inspect(_ data: Data) -> JarReport {
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         let report = data.withUnsafeBytes { raw in
             JarReport(tv_jar_inspect(raw.bindMemory(to: UInt8.self).baseAddress, raw.count))
         }
@@ -34,7 +34,7 @@ public actor JarRuntime {
         return report
     }
     public func runStaticInt(_ data: Data, className: String, method: String) -> JarReport {
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         let report = data.withUnsafeBytes { raw in
             className.withCString { className in
                 method.withCString { method in

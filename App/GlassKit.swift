@@ -853,7 +853,7 @@ private struct LoadingFocus: ViewModifier {
         content.focusable().focused($focused).onExitCommand(perform: onExit)
             .task {
                 guard takeFocus else { return }
-                try? await Task.sleep(for: .milliseconds(300))
+                try? await Task.legacySleep(for: .milliseconds(300))
                 focused = true
             }
     }
@@ -897,7 +897,7 @@ extension LoadingProgress {
             return LoadingProgress(title: state.stage == .loading ? title : state.stage.title,
                                    detail: state.detail, fraction: state.fraction, reason: state.reason)
         }
-        return server(URL(string: site.api)?.host(), title: title)
+        return server(URL(string: site.api)?.host, title: title)
     }
 
     /// A plain request to one server.
@@ -913,7 +913,7 @@ struct ElapsedTime: View {
     @State private var started = Date()
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
-            Text(Duration.seconds(max(0, Int(timeline.date.timeIntervalSince(started)))).formatted(.time(pattern: .minuteSecond)))
+            Text(LegacyDuration.seconds(max(0, Int(timeline.date.timeIntervalSince(started)))).formatted(.time(pattern: .minuteSecond)))
                 .monospacedDigit().foregroundStyle(.secondary)
         }
     }
@@ -963,7 +963,7 @@ struct LoadingCard: View {
                     }
                 }
                 Spacer(minLength: 16)
-                Text(Duration.seconds(elapsed).formatted(.time(pattern: .minuteSecond)))
+                Text(LegacyDuration.seconds(elapsed).formatted(.time(pattern: .minuteSecond)))
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
             if let fraction = state.fraction {

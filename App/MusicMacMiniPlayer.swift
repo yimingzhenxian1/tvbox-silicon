@@ -137,7 +137,7 @@ struct MusicMiniPlayerTrigger: View {
             case "minimize":
                 // A window restored minimized from the last run has to come back first.
                 if window.isMiniaturized { window.deminiaturize(nil) }
-                try? await Task.sleep(for: .seconds(1.5))
+                try? await Task.legacySleep(for: .seconds(1.5))
                 window.miniaturize(nil)
             default: break
             }

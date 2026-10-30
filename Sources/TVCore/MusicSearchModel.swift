@@ -1,10 +1,10 @@
 import Foundation
-import Observation
+import Perception
 
 /// Music search across the catalogs, for songs, albums or playlists. Typing waits 350 ms before
 /// searching; each catalog answers on its own, and results show as they arrive, merged and
 /// ranked. A newer query cancels the older one, and a late answer never replaces newer results.
-@MainActor @Observable public final class MusicSearchModel {
+@MainActor @Perceptible public final class MusicSearchModel {
     public private(set) var query = ""
     public private(set) var kind: MusicSearchKind = .songs
     public private(set) var results: [MusicTrack] = []
@@ -26,7 +26,7 @@ import Observation
     private var generation = UUID()
     private struct Cached { var results: [MusicTrack]; var collections: [MusicCollection]; var created: Date }
     private var cache: [String: Cached] = [:]
-    static let debounce: Duration = .milliseconds(350)
+    static let debounce: LegacyDuration = .milliseconds(350)
     static let cacheLifetime: TimeInterval = 10 * 60
 
     public init(catalogs: [any MusicCatalogSource]? = nil, health: MusicHealth = .shared, kind: MusicSearchKind = .songs) {
@@ -86,7 +86,7 @@ import Observation
         busy = true
         task = Task {
             if !immediately {
-                try? await Task.sleep(for: Self.debounce)
+                try? await Task.legacySleep(for: Self.debounce)
                 guard !Task.isCancelled, self.generation == run else { return }
             }
             if let collectionKind = kind.collectionKind {

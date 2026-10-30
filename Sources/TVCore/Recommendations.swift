@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 
 public struct PosterResource: Hashable, Sendable {
     public let url: URL
@@ -60,7 +60,7 @@ public struct Recommendation: Identifiable, Hashable, Sendable {
     }
 }
 
-@MainActor @Observable public final class RecommendationModel {
+@MainActor @Perceptible public final class RecommendationModel {
     public private(set) var items: [Recommendation] = []
     /// The source's own categories, browsable beside its recommendations.
     public private(set) var categories: [Category] = []

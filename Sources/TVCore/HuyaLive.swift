@@ -79,7 +79,7 @@ enum HuyaLive {
     /// stream and token on the line's HLS host, which accepts them. AVPlayer can't play FLV.
     static func hlsAddress(flv url: URL) -> URL? {
         let suffix = ".flv.huya.com"
-        guard url.pathExtension.lowercased() == "flv", let host = url.host()?.lowercased(), host.hasSuffix(suffix),
+        guard url.pathExtension.lowercased() == "flv", let host = url.host?.lowercased(), host.hasSuffix(suffix),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
         components.scheme = "https"
         components.host = String(host.dropLast(suffix.count)) + ".hls.huya.com"

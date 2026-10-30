@@ -183,7 +183,7 @@ actor CloudByteStream {
 
     init(source: CloudStreams.Source, session: URLSession = CloudByteStream.session, parallel: Int = CloudByteStream.parallel,
          rewritesSampleEntries: Bool = true, refresh: @escaping @Sendable () async -> CloudStreams.Source?) {
-        self.source = source; self.session = session; self.refresh = refresh; host = source.url.host()
+        self.source = source; self.session = session; self.refresh = refresh; host = source.url.host
         connections = max(1, parallel)
         self.rewritesSampleEntries = rewritesSampleEntries
         sourceLength = source.length
@@ -279,7 +279,7 @@ actor CloudByteStream {
                 if [401, 403, 404, 410].contains(status), attempt <= 2, await renew() { continue }
                 guard status == 206,
                       let range = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Range"),
-                      let match = range.firstMatch(of: /^bytes (\d+)-(\d+)\/(\d+)$/),
+                      let match = range.legacyFirstMatch(#"^bytes (\d+)-(\d+)\/(\d+)$"#),
                       Int(match.1) == first, Int(match.2) == last, data.count == last - first + 1 else {
                     Diagnostics.shared.record(.error, "cloud.stream", "chunk=\(index) status=\(status) bytes=\(data.count)")
                     throw TVError.http(status == 200 ? 416 : status)
@@ -298,7 +298,7 @@ actor CloudByteStream {
                 return playable
             } catch let error as URLError where error.code != .cancelled && attempt < 3 {
                 Diagnostics.shared.record(.debug, "cloud.stream", "chunk=\(index) retry \(error.code.rawValue)")
-                try await Task.sleep(for: .milliseconds(400 * attempt))
+                try await Task.legacySleep(for: .milliseconds(400 * attempt))
             }
         }
     }
@@ -311,7 +311,7 @@ actor CloudByteStream {
             return false
         }
         source = next
-        Diagnostics.shared.record(.info, "cloud.stream", "refreshed host=\(next.url.host() ?? "-")")
+        Diagnostics.shared.record(.info, "cloud.stream", "refreshed host=\(next.url.host ?? "-")")
         return true
     }
 
@@ -379,7 +379,7 @@ private final class CloudResourceLoader: NSObject, AVAssetResourceLoaderDelegate
                             if latest > seen {
                                 // A newer request may be about to cancel this one: let that land first.
                                 seen = latest
-                                try await Task.sleep(for: .milliseconds(150))
+                                try await Task.legacySleep(for: .milliseconds(150))
                             }
                             try Task.checkCancellation()
                             let next = min(bytes.endIndex, piece + 256 << 10)

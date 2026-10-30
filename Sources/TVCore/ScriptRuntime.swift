@@ -13,7 +13,7 @@ public actor ScriptRuntime {
     private static let maximumSessions = 6
 
     public func request(site: Site, scriptURL: URL, params: [String: String], http: HTTPClient, origin: URL) async throws -> [String: JSONValue] {
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         let session = try await self.session(site: site, scriptURL: scriptURL, origin: origin, http: http)
         let envelope = try await session.call(params)
         if let message = PluginFailure.message(envelope) {

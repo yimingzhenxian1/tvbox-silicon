@@ -10,7 +10,7 @@ public enum BilibiliLive {
     private static let following = "following"
 
     public static func room(_ url: URL) -> Int? {
-        guard url.scheme == scheme, url.host() == "room" else { return nil }
+        guard url.scheme == scheme, url.host == "room" else { return nil }
         return Int(url.lastPathComponent)
     }
 

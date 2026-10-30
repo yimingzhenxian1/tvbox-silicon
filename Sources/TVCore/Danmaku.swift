@@ -33,7 +33,7 @@ public enum DanmakuSource {
     /// A Bilibili media address cast by the phone (…/upgcxcode/…/<cid>-<n>-<quality>.mp4) names its part's cid,
     /// which is all the comments need. Returns whether the address had one.
     @discardableResult public static func registerBilibiliMedia(_ url: URL) -> Bool {
-        guard url.path.contains("xcode"), let match = url.lastPathComponent.firstMatch(of: /^(\d+)-\d+-\d+\.(mp4|m4s|flv)$/),
+        guard url.path.contains("xcode"), let match = url.lastPathComponent.legacyFirstMatch(#"^(\d+)-\d+-\d+\.(mp4|m4s|flv)$"#),
               let cid = Int(match.1), cid > 0 else { return false }
         register(url, bilibiliCID: String(cid), duration: nil)
         return true

@@ -44,7 +44,7 @@ struct PluginSignInView: View {
         #endif
         .task {
             while !Task.isCancelled && !expired {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.legacySleep(for: .seconds(1))
                 now = Date()
             }
         }

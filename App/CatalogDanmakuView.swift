@@ -1,9 +1,10 @@
+import Perception
 import SwiftUI
 import AVKit
 import TVCore
 import UniformTypeIdentifiers
 
-@MainActor @Observable final class CatalogDanmakuModel {
+@MainActor @Perceptible final class CatalogDanmakuModel {
     private(set) var comments: [CatalogDanmakuComment] = []
     private(set) var track = ""
     private(set) var revision = UUID()
@@ -36,8 +37,8 @@ import UniformTypeIdentifiers
     private(set) var fromCache = false
     var context: PlaybackHistoryContext? { automaticContext }
 
-    @ObservationIgnored private var renderedKey: String?
-    @ObservationIgnored private var rendered: [Danmaku] = []
+    @PerceptionIgnored private var renderedKey: String?
+    @PerceptionIgnored private var rendered: [Danmaku] = []
     var renderedRevision: String { "\(revision):\(offset):\(fontSize)" }
     var renderedComments: [Danmaku] {
         let key = renderedRevision
@@ -94,7 +95,7 @@ import UniformTypeIdentifiers
             guard let self else { return }
             await self.automaticTask?.value
             guard !Task.isCancelled, self.generation == active, !self.comments.isEmpty else { return }
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.legacySleep(for: .seconds(3))
             guard !Task.isCancelled, self.generation == active else { return }
             let defaults = UserDefaults.standard
             let resolver = DanmakuResolver(dandanServer: defaults.string(forKey: "danmakuServer") ?? CatalogDanmakuClient.defaultServer,

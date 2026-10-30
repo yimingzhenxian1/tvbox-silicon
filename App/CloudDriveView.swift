@@ -164,7 +164,7 @@ struct CloudLoginView: View {
         var found = ticket
         if provider == .quark, found == nil {
             for _ in 0..<4 {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.legacySleep(for: .seconds(1))
                 if let ticket { found = ticket; break }
             }
         }

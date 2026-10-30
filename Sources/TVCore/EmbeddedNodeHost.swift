@@ -47,7 +47,7 @@ public actor EmbeddedNodeHost {
         ]
         let body = try JSONEncoder().encode(input)
         let kind = EmbeddedJarHost.kind(params)
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         Diagnostics.shared.record(.info, "jar.request", "source=\(site.key) node \(kind) begin")
         let control = try await self.start()
         let envelope: [String: JSONValue]
@@ -117,9 +117,9 @@ public actor EmbeddedNodeHost {
         try handle.seekToEnd()
         try handle.write(contentsOf: Data("\n".utf8))
         try handle.close()
-        let deadline = ContinuousClock.now + .seconds(5)
-        while ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(50))
+        let deadline = LegacyClock.now + .seconds(5)
+        while LegacyClock.now < deadline {
+            try await Task.legacySleep(for: .milliseconds(50))
             if let control = current(), control.port != stale.port {
                 Diagnostics.shared.record(.info, "node.start", "listening again on port \(control.port ?? 0)")
                 return control
@@ -179,13 +179,13 @@ public actor EmbeddedNodeHost {
         thread.name = "nodejs"
         thread.stackSize = 2 << 20
         thread.start()
-        let deadline = ContinuousClock.now + .seconds(30)
-        while ContinuousClock.now < deadline {
+        let deadline = LegacyClock.now + .seconds(30)
+        while LegacyClock.now < deadline {
             if let data = try? Data(contentsOf: file), let control = try? JSONDecoder().decode(Control.self, from: data) {
                 Diagnostics.shared.record(.info, "node.start", control.error == nil ? "ready" : "stopped")
                 return control
             }
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.legacySleep(for: .milliseconds(100))
         }
         Diagnostics.shared.record(.error, "node.start", "Node did not start within 30 s")
         return Control(error: L10n.text("The CatPawOpen runtime stopped. Quit and reopen the app to use these sources."))

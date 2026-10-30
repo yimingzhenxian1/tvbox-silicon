@@ -1,0 +1,38 @@
+name: Full Yingxia iOS 15 backport
+on:
+  push:
+    branches: [full-yingxia-ios15]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify source base
+        run: |
+          git fetch origin
+          git merge-base --is-ancestor origin/main HEAD
+          mkdir -p build/ios15-audit
+          git rev-parse HEAD > build/ios15-audit/source.txt
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/tvbox-ffmpeg
+          key: full-ios15-ffmpeg-${{ runner.arch }}-${{ hashFiles('Scripts/build-apple-ffmpeg.sh') }}
+      - name: Prepare media dependency
+        run: bash Scripts/build-apple-ffmpeg.sh 2>&1 | tee build/ios15-audit/ffmpeg.log
+      - name: Compile full core for iOS 15.6
+        shell: bash
+        run: |
+          set -o pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          swift build --triple arm64-apple-ios15.6 --sdk "$SDK" --target TVCore 2>&1 | tee build/ios15-audit/core.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-ios15-diagnostics
+          path: build/ios15-audit/

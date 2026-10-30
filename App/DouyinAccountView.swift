@@ -220,7 +220,7 @@ struct DouyinLoginView: View {
                     } catch { self.error = error.localizedDescription }
                     return
                 }
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.legacySleep(for: .seconds(1))
             }
         }
     }

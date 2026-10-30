@@ -52,7 +52,7 @@ public enum DouyuStreams {
             if value.isEmpty { return line }
             if value == "#EXT-X-DISCONTINUITY", sequence == 0, index < firstSegment { return nil }
             if !value.hasPrefix("#") { return resolve(value) }
-            guard let match = line.firstMatch(of: /URI="([^"]+)"/) else { return line }
+            guard let match = line.legacyFirstMatch(#"URI="([^"]+)""#) else { return line }
             return line.replacingCharacters(in: match.1.startIndex..<match.1.endIndex, with: resolve(String(match.1)))
         }.joined(separator: "\n")
     }
@@ -78,7 +78,7 @@ private final class DouyuPlaylistLoader: NSObject, AVAssetResourceLoaderDelegate
                 guard (200..<300).contains(status) else { throw TVError.http(status) }
                 result = .success(Data(DouyuStreams.rewrite(String(decoding: data, as: UTF8.self), origin: response.url ?? upstream).utf8))
             } catch {
-                if !(error is CancellationError) { Diagnostics.shared.record(.warning, "live", "douyu playlist host=\(upstream.host() ?? "-") \(error.localizedDescription)") }
+                if !(error is CancellationError) { Diagnostics.shared.record(.warning, "live", "douyu playlist host=\(upstream.host ?? "-") \(error.localizedDescription)") }
                 result = .failure(error)
             }
             self?.queue.async { [weak self] in

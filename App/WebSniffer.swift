@@ -28,7 +28,7 @@ import UIKit
 public final class WKWebSniffer: WebSniffing, @unchecked Sendable {
     public init() {}
     public func sniff(url: String, headers: [String: String], click: String, detect: Bool, ads: [String], rules: [SniffRule]) async -> (url: URL, headers: [String: String])? {
-        let host = URL(string: url)?.host() ?? "-"
+        let host = URL(string: url)?.host ?? "-"
         Diagnostics.shared.record(.info, "sniff", "start host=\(host)")
         let box = SniffBox()
         let session = await MainActor.run {
@@ -41,7 +41,7 @@ public final class WKWebSniffer: WebSniffing, @unchecked Sendable {
             Task { @MainActor in session.stop() }
         }
         if let found {
-            Diagnostics.shared.record(.info, "sniff", "hit host=\(found.url.host() ?? host)")
+            Diagnostics.shared.record(.info, "sniff", "hit host=\(found.url.host ?? host)")
         } else {
             Diagnostics.shared.record(.warning, "sniff", "miss host=\(host)")
         }

@@ -127,7 +127,7 @@ public struct MiguProvider: MusicStreamProvider {
             throw MusicProviderError.noResource
         }
         if text.hasPrefix("//") { text = "https:" + text }
-        guard let url = URL(string: text.replacingOccurrences(of: "+", with: "%2B")), url.host() != nil else {
+        guard let url = URL(string: text.replacingOccurrences(of: "+", with: "%2B")), url.host != nil else {
             throw MusicProviderError.noResource
         }
         return url

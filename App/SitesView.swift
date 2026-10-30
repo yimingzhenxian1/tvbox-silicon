@@ -48,7 +48,7 @@ struct SitesView: View {
                     guard UserDefaults.standard.bool(forKey: "qaArrangeSources") else { return }
                     store.setCustomSourceOrder(true)
                     // Let launch settle first: on tvOS a sheet asked for straight away never appeared.
-                    try? await Task.sleep(for: .seconds(2))
+                    try? await Task.legacySleep(for: .seconds(2))
                     arranging = true
                 }
                 #endif
@@ -938,7 +938,7 @@ struct VideoDetailView: View {
                            episodes: activeEpisodes) { count in
                 guard count > 0 else { return }
                 withAnimation(.smooth(duration: 0.2)) { queuedNotice = count }
-                Task { try? await Task.sleep(for: .seconds(6)); withAnimation(.smooth(duration: 0.2)) { queuedNotice = nil } }
+                Task { try? await Task.legacySleep(for: .seconds(6)); withAnimation(.smooth(duration: 0.2)) { queuedNotice = nil } }
             }
         }
         .confirmationDialog(L10n.text("Choose quality"), isPresented: $choosingQuality, titleVisibility: .visible) {
@@ -1073,7 +1073,7 @@ struct VideoDetailView: View {
             // Start on a line that can play: not one from a drive the viewer has no way to sign in to.
             if selectedFlag == nil { selectedFlag = CloudDrive.preferredFlag(flags) }
             #if os(tvOS)
-            Task { try? await Task.sleep(for: .milliseconds(100)); playFocused = true }
+            Task { try? await Task.legacySleep(for: .milliseconds(100)); playFocused = true }
             #endif
         } catch {
             guard !Task.isCancelled else { return }
@@ -1081,7 +1081,7 @@ struct VideoDetailView: View {
             self.error = error.localizedDescription
             #if os(tvOS)
             // The loading placeholder that held focus is gone: Retry in the hero takes it.
-            Task { try? await Task.sleep(for: .milliseconds(100)); playFocused = true }
+            Task { try? await Task.legacySleep(for: .milliseconds(100)); playFocused = true }
             #endif
         }
     }
@@ -1662,7 +1662,7 @@ struct VideoDetailView: View {
             .onTapGesture { if starting { withAnimation(.smooth(duration: 0.25)) { coverBack.toggle() } } }
             .task(id: coverBack) {
                 guard coverBack else { return }
-                try? await Task.sleep(for: .seconds(3))
+                try? await Task.legacySleep(for: .seconds(3))
                 if !Task.isCancelled { withAnimation(.smooth(duration: 0.3)) { coverBack = false } }
             }
             .overlay {

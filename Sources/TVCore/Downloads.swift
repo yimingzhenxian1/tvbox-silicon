@@ -1,5 +1,5 @@
 import Foundation
-import Observation
+import Perception
 
 /// Where a download came from: enough to resolve the episode again when its links expire.
 public struct DownloadSource: Codable, Hashable, Sendable {
@@ -69,7 +69,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
 /// Downloaded episodes and the queue that fetches them. A fixed number of downloads run at once
 /// (`simultaneous`); the rest wait in order. Progress survives pausing, quitting and expired links:
 /// each download keeps its finished pieces on disk and resolves the episode again when needed.
-@MainActor @Observable public final class DownloadLibrary {
+@MainActor @Perceptible public final class DownloadLibrary {
     public static let shared = DownloadLibrary()
     /// Addresses of downloaded episodes for the player: `tvbox-download://<id>`.
     public static let scheme = "tvbox-download"
@@ -93,15 +93,15 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
         }
     }
     /// Resolves an episode to its current media address; set by the app, which knows the sources.
-    @ObservationIgnored public var resolver: (@MainActor @Sendable (DownloadItem) async throws -> Channel)?
+    @PerceptionIgnored public var resolver: (@MainActor @Sendable (DownloadItem) async throws -> Channel)?
 
     public let root: URL
-    @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let session: URLSession
-    @ObservationIgnored private var running: [String: (run: UUID, task: Task<Void, Never>, meter: DownloadMeter)] = [:]
-    @ObservationIgnored private var samples: [String: (date: Date, bytes: Int64)] = [:]
-    @ObservationIgnored private var ticker: Task<Void, Never>?
-    @ObservationIgnored private var savedAt = Date.distantPast
+    @PerceptionIgnored private let defaults: UserDefaults
+    @PerceptionIgnored private let session: URLSession
+    @PerceptionIgnored private var running: [String: (run: UUID, task: Task<Void, Never>, meter: DownloadMeter)] = [:]
+    @PerceptionIgnored private var samples: [String: (date: Date, bytes: Int64)] = [:]
+    @PerceptionIgnored private var ticker: Task<Void, Never>?
+    @PerceptionIgnored private var savedAt = Date.distantPast
 
     public init(root: URL = DownloadLibrary.defaultRoot, defaults: UserDefaults = .standard) {
         self.root = root; self.defaults = defaults
@@ -126,11 +126,11 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     /// tvOS gives apps no lasting storage besides Caches, which the system may clear when space runs low.
     public nonisolated static var defaultRoot: URL {
         #if os(tvOS)
-        URL.cachesDirectory.appending(path: "Downloads")
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "Downloads")
         #elseif os(macOS)
-        URL.applicationSupportDirectory.appending(path: Bundle.main.bundleIdentifier ?? "Yingxia").appending(path: "Downloads")
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent( Bundle.main.bundleIdentifier ?? "Yingxia").appendingPathComponent( "Downloads")
         #else
-        URL.applicationSupportDirectory.appending(path: "Downloads")
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent( "Downloads")
         #endif
     }
 
@@ -216,7 +216,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
         else if ticker == nil {
             ticker = Task { [weak self] in
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(1))
+                    try? await Task.legacySleep(for: .seconds(1))
                     self?.tick()
                 }
             }
@@ -316,10 +316,10 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     /// The file (or, for HLS, the loopback address) that plays a `tvbox-download://` address. An HDR MKV saved
     /// before downloads became MP4s is rewrapped first, which `progress` follows (0...1).
     public func playbackAddress(for url: URL, progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> URL {
-        guard url.scheme == Self.scheme, let id = url.host(), let item = item(id: id), item.status == .completed, var media = item.media else {
+        guard url.scheme == Self.scheme, let id = url.host, let item = item(id: id), item.status == .completed, var media = item.media else {
             throw TVError.unsupported(L10n.text("This download is no longer on this device."))
         }
-        var file = folder(id).appending(path: media)
+        var file = folder(id).appendingPathComponent( media)
         guard FileManager.default.fileExists(atPath: file.path) else {
             // Deleted or moved away in Finder: stop listing it as downloaded.
             remove([id])
@@ -330,7 +330,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
             try Task.checkCancellation()
             if rewrapped != media {
                 media = rewrapped
-                file = folder(id).appending(path: media)
+                file = folder(id).appendingPathComponent( media)
                 let size = Self.allocatedSize(folder(id))
                 update(id) { $0.media = rewrapped; $0.size = size }
                 save()
@@ -346,7 +346,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     /// A finished download's playable file, for showing it in Finder.
     public func file(for item: DownloadItem) -> URL? {
         guard item.status == .completed, let media = item.media else { return nil }
-        return folder(item.id).appending(path: media)
+        return folder(item.id).appendingPathComponent( media)
     }
 
     /// Forgets finished downloads whose file is gone: deleted or moved away in Finder, or cleared by
@@ -360,7 +360,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     public func measure() async {
         forgetMissing()
         let root = root, ids = items.map(\.id)
-        let sizes = await Task.detached { ids.map { (id: $0, size: Self.allocatedSize(root.appending(path: $0))) } }.value
+        let sizes = await Task.detached { ids.map { (id: $0, size: Self.allocatedSize(root.appendingPathComponent( $0))) } }.value
         for entry in sizes {
             if let item = item(id: entry.id), item.status == .completed { update(entry.id) { $0.size = entry.size } }
         }
@@ -384,7 +384,7 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     /// file's name. The MKV stays when no MP4 is needed, there is no room for one, or writing it fails.
     nonisolated static func rewrap(_ name: String, in folder: URL, progress: @escaping @Sendable (Double) -> Void = { _ in }) async -> String {
         guard Remux.handles(name: name) else { return name }
-        let source = folder.appending(path: name), target = folder.appending(path: rewrappedName)
+        let source = folder.appendingPathComponent( name), target = folder.appendingPathComponent( rewrappedName)
         let size = (try? source.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
         let began = Date()
         do {
@@ -420,11 +420,11 @@ public struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
 
     // MARK: Persistence
 
-    private func folder(_ id: String) -> URL { root.appending(path: id) }
-    private var index: URL { root.appending(path: "downloads.json") }
+    private func folder(_ id: String) -> URL { root.appendingPathComponent( id) }
+    private var index: URL { root.appendingPathComponent( "downloads.json") }
     private func hasMedia(_ item: DownloadItem) -> Bool {
         guard let media = item.media else { return false }
-        return FileManager.default.fileExists(atPath: folder(item.id).appending(path: media).path)
+        return FileManager.default.fileExists(atPath: folder(item.id).appendingPathComponent( media).path)
     }
 
     private func load() {

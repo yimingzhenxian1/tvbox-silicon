@@ -41,7 +41,7 @@ extension Subscription {
         }
         for (index, runtime) in found {
             sites[index].detectedRuntime = runtime
-            Diagnostics.shared.record(.info, "subscription", "sniffed source=\(sites[index].key) host=\(URL(string: sites[index].api)?.host() ?? "-") runtime=\(runtime.map { "\($0)" } ?? "unknown")")
+            Diagnostics.shared.record(.info, "subscription", "sniffed source=\(sites[index].key) host=\(URL(string: sites[index].api)?.host ?? "-") runtime=\(runtime.map { "\($0)" } ?? "unknown")")
         }
         return Subscription(origin: origin, importedAt: importedAt, sites: sites, lives: lives, raw: raw)
     }

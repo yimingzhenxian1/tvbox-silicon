@@ -101,11 +101,11 @@ struct Transfer: Sendable {
     let resolve: @Sendable () async throws -> Channel
     let note: @Sendable (TransferNote) async -> Void
 
-    private var planFile: URL { folder.appending(path: "plan.json") }
+    private var planFile: URL { folder.appendingPathComponent( "plan.json") }
 
     /// Downloads everything and returns the playable file's path inside the folder.
     func run() async throws -> String {
-        try FileManager.default.createDirectory(at: folder.appending(path: "parts"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent( "parts"), withIntermediateDirectories: true)
         var plan: TransferPlan
         if let data = try? Data(contentsOf: planFile), let saved = try? JSONDecoder().decode(TransferPlan.self, from: data) { plan = saved }
         else { plan = try await prepare(try await resolve()); try save(plan) }
@@ -169,7 +169,7 @@ struct Transfer: Sendable {
             let (_, response) = try await get(urls, headers: Bilibili.mediaHeaders, range: 0...0, limit: 1, counts: false)
             guard response.statusCode == 206, let length = Self.total(response) else { throw TransferError.rangeLost }
             // Keep the mirror that answered first.
-            let first = response.url.flatMap { answered in urls.first { $0.host() == answered.host() } }
+            let first = response.url.flatMap { answered in urls.first { $0.host == answered.host } }
             files.append(.init(urls: first.map { [$0] + urls.filter { $0 != first } } ?? urls, name: name, length: length, ranged: true,
                                initialization: initialization, index: index))
         }
@@ -210,15 +210,15 @@ struct Transfer: Sendable {
             }
         }
         Diagnostics.shared.record(.info, "download", "renewed media differs; starting over folder=\(folder.lastPathComponent)")
-        try? FileManager.default.removeItem(at: folder.appending(path: "parts"))
-        try FileManager.default.createDirectory(at: folder.appending(path: "parts"), withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: folder.appendingPathComponent( "parts"))
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent( "parts"), withIntermediateDirectories: true)
         return plan
     }
 
     /// A file download already moved into place (or rewrapped): the app quit while it was finishing.
     private func finishedFile(_ plan: TransferPlan) -> String? {
-        guard plan.kind == .file, !FileManager.default.fileExists(atPath: folder.appending(path: "parts").appending(path: plan.files[0].name).path) else { return nil }
-        return ["media." + (plan.fileExtension ?? "mp4"), DownloadLibrary.rewrappedName].first { FileManager.default.fileExists(atPath: folder.appending(path: $0).path) }
+        guard plan.kind == .file, !FileManager.default.fileExists(atPath: folder.appendingPathComponent( "parts").appendingPathComponent( plan.files[0].name).path) else { return nil }
+        return ["media." + (plan.fileExtension ?? "mp4"), DownloadLibrary.rewrappedName].first { FileManager.default.fileExists(atPath: folder.appendingPathComponent( $0).path) }
     }
 
     private func save(_ plan: TransferPlan) throws {
@@ -235,7 +235,7 @@ struct Transfer: Sendable {
             total = plan.files.reduce(0) { $0 + $1.chunks }
         case .hls:
             let present = plan.parts.compactMap { part -> Int64? in
-                (try? folder.appending(path: part.name).resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
+                (try? folder.appendingPathComponent( part.name).resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
             }
             saved = present.reduce(0, +); done = present.count; total = plan.parts.count
         }
@@ -254,7 +254,7 @@ struct Transfer: Sendable {
         case .file, .dash:
             for index in plan.files.indices { try await fetch(file: index, box: box) }
         case .hls:
-            let pending = plan.parts.filter { !FileManager.default.fileExists(atPath: folder.appending(path: $0.name).path) }
+            let pending = plan.parts.filter { !FileManager.default.fileExists(atPath: folder.appendingPathComponent( $0.name).path) }
             let queue = WorkQueue(pending)
             try await withThrowingTaskGroup(of: Void.self) { group in
                 for _ in 0..<min(Self.connections, pending.count) {
@@ -263,7 +263,7 @@ struct Transfer: Sendable {
                             try Task.checkCancellation()
                             var (data, _) = try await get([part.url], headers: plan.headers, range: part.range)
                             if part.transportStream { data = MediaPayload.transportStream(data) }
-                            let target = folder.appending(path: part.name)
+                            let target = folder.appendingPathComponent( part.name)
                             try Self.writing { try data.write(to: target, options: .atomic) }
                             meter.finishedPart()
                         }
@@ -276,7 +276,7 @@ struct Transfer: Sendable {
 
     private func fetch(file index: Int, box: PlanBox) async throws {
         let file = box.plan.files[index], headers = box.plan.headers
-        let target = folder.appending(path: "parts").appending(path: file.name)
+        let target = folder.appendingPathComponent( "parts").appendingPathComponent( file.name)
         guard file.ranged, let length = file.length else {
             // No ranges: one request into a fresh file.
             try? FileManager.default.removeItem(at: target)
@@ -328,7 +328,7 @@ struct Transfer: Sendable {
              counts: Bool = true, sink: (@Sendable (Data) throws -> Void)? = nil) async throws -> (Data, HTTPURLResponse) {
         var failure: Error = TransferError.http(0)
         for attempt in 0..<3 {
-            if attempt > 0 { try await Task.sleep(for: .seconds(2 * attempt)) }
+            if attempt > 0 { try await Task.legacySleep(for: .seconds(2 * attempt)) }
             var refused = 0
             for url in urls {
                 do { return try await once(url, headers: headers, range: range, limit: limit, counts: counts, sink: sink) }
@@ -382,7 +382,7 @@ struct Transfer: Sendable {
     // MARK: Finishing
 
     private func finish(_ plan: TransferPlan) async throws -> String {
-        let parts = folder.appending(path: "parts")
+        let parts = folder.appendingPathComponent( "parts")
         switch plan.kind {
         case .file:
             if let name = finishedFile(plan) {
@@ -390,12 +390,12 @@ struct Transfer: Sendable {
                 return await DownloadLibrary.rewrap(name, in: folder)
             }
             let name = "media." + (plan.fileExtension ?? "mp4")
-            try? FileManager.default.removeItem(at: folder.appending(path: name))
-            try FileManager.default.moveItem(at: parts.appending(path: plan.files[0].name), to: folder.appending(path: name))
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent( name))
+            try FileManager.default.moveItem(at: parts.appendingPathComponent( plan.files[0].name), to: folder.appendingPathComponent( name))
             try? FileManager.default.removeItem(at: parts)
             return await DownloadLibrary.rewrap(name, in: folder)
         case .hls:
-            try Self.writing { try Data((plan.playlist ?? "").utf8).write(to: folder.appending(path: "index.m3u8"), options: .atomic) }
+            try Self.writing { try Data((plan.playlist ?? "").utf8).write(to: folder.appendingPathComponent( "index.m3u8"), options: .atomic) }
             return "index.m3u8"
         case .dash:
             // The halves stay as downloaded and play as HLS byte ranges, as they stream: re-muxing HEVC
@@ -403,17 +403,17 @@ struct Transfer: Sendable {
             var master = ["#EXTM3U", "#EXT-X-VERSION:7", "#EXT-X-INDEPENDENT-SEGMENTS"]
             for (position, file) in plan.files.enumerated() {
                 guard let initialization = file.initialization, let range = file.index else { throw TransferError.notMedia }
-                let handle = try FileHandle(forReadingFrom: parts.appending(path: file.name))
+                let handle = try FileHandle(forReadingFrom: parts.appendingPathComponent( file.name))
                 defer { try? handle.close() }
                 try handle.seek(toOffset: UInt64(range.lowerBound))
                 let sidx = try handle.read(upToCount: range.count) ?? Data()
                 let index = try SegmentIndex(sidx: sidx, at: range.lowerBound, initialization: initialization, url: URL(string: "parts/" + file.name)!)
                 let name = position == 0 ? "video.m3u8" : "audio.m3u8"
-                try Self.writing { try Data(BilibiliStreams.media(index).utf8).write(to: folder.appending(path: name), options: .atomic) }
+                try Self.writing { try Data(BilibiliStreams.media(index).utf8).write(to: folder.appendingPathComponent( name), options: .atomic) }
                 if position == 1 { master.append("#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"Audio\",DEFAULT=YES,AUTOSELECT=YES,URI=\"audio.m3u8\"") }
             }
             master += ["#EXT-X-STREAM-INF:" + (plan.streamInfo ?? "BANDWIDTH=1"), "video.m3u8"]
-            try Self.writing { try Data((master.joined(separator: "\n") + "\n").utf8).write(to: folder.appending(path: "index.m3u8"), options: .atomic) }
+            try Self.writing { try Data((master.joined(separator: "\n") + "\n").utf8).write(to: folder.appendingPathComponent( "index.m3u8"), options: .atomic) }
             return "index.m3u8"
         }
     }

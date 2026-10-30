@@ -1,3 +1,4 @@
+import Perception
 import AVFoundation
 import SwiftUI
 import TVCore
@@ -11,7 +12,7 @@ typealias MusicTrack = TVCore.MusicTrack
 /// length. A song no channel can play is skipped, until several in a row fail. Songs that play go
 /// into the history, and where listening is gets saved, to continue later.
 /// A new song, or Stop, cancels everything for the old one, so a late answer never plays.
-@MainActor @Observable final class MusicPlaybackSession {
+@MainActor @Perceptible final class MusicPlaybackSession {
     enum Phase: Equatable {
         case idle
         /// Finding a channel.
@@ -78,7 +79,7 @@ typealias MusicTrack = TVCore.MusicTrack
     private var lyricsFor: String?
     private var lastSavedPosition: Double = -10
     /// AVPlayer gets this long from a stream being set to sound playing before the stream counts as failed.
-    static let startWindow: Duration = .seconds(10)
+    static let startWindow: LegacyDuration = .seconds(10)
 
     init(library: MusicLibrary = .shared) {
         self.library = library
@@ -374,10 +375,10 @@ typealias MusicTrack = TVCore.MusicTrack
         phase = .loading
         streamSetAt = Date()
         loadLyrics(for: selection)
-        Diagnostics.shared.record(.info, "music", "start \(selection.candidate.provider.rawValue) host=\(stream.url.host() ?? "-") \(selection.probe.format.label)\(selection.degraded ? " degraded" : "")")
+        Diagnostics.shared.record(.info, "music", "start \(selection.candidate.provider.rawValue) host=\(stream.url.host ?? "-") \(selection.probe.format.label)\(selection.degraded ? " degraded" : "")")
         // Buffering, pausing and interruptions are not failures; no sound at all within the window is.
         startWatch = Task { [weak self] in
-            try? await Task.sleep(for: Self.startWindow)
+            try? await Task.legacySleep(for: Self.startWindow)
             guard let self, !Task.isCancelled, self.generation == run, self.phase == .loading, self.player.rate > 0 else { return }
             self.playbackFailed("no sound within 10 s", run: run)
         }
@@ -422,7 +423,7 @@ typealias MusicTrack = TVCore.MusicTrack
             Diagnostics.shared.record(.warning, "music", "skipped after: \(error.detail)")
             phase = .resolving
             Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1.5))
+                try? await Task.legacySleep(for: .seconds(1.5))
                 guard let self, self.generation == run else { return }
                 self.next()
             }

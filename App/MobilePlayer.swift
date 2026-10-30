@@ -1,3 +1,4 @@
+import Perception
 #if os(iOS)
 import SwiftUI
 import AVKit
@@ -189,7 +190,7 @@ struct MobilePlayerView: View {
             withAnimation(.snappy(duration: 0.25)) { skipped = (seconds > 0, total) }
             skippedTask?.cancel()
             skippedTask = Task {
-                try? await Task.sleep(for: .seconds(PictureTaps.streak + 0.1))
+                try? await Task.legacySleep(for: .seconds(PictureTaps.streak + 0.1))
                 if !Task.isCancelled { withAnimation(.easeOut(duration: 0.2)) { skipped = nil } }
             }
         }
@@ -200,7 +201,7 @@ struct MobilePlayerView: View {
         settling = true
         settleTask?.cancel()
         settleTask = Task {
-            try? await Task.sleep(for: .seconds(PictureTaps.interval))
+            try? await Task.legacySleep(for: .seconds(PictureTaps.interval))
             if !Task.isCancelled { settling = false }
         }
     }
@@ -254,7 +255,7 @@ struct MobilePlayerView: View {
             if leveling {
                 leveling = false
                 levelTask = Task {
-                    try? await Task.sleep(for: .seconds(0.8))
+                    try? await Task.legacySleep(for: .seconds(0.8))
                     guard !Task.isCancelled else { return }
                     level = nil; mountsVolume = false
                 }
@@ -1100,12 +1101,12 @@ private struct PlayerLayerView: UIViewRepresentable {
 }
 
 /// Picture in Picture for the player layer: the button, and carrying on in a floating window when the app is left.
-@MainActor @Observable final class PictureInPicture: NSObject, AVPictureInPictureControllerDelegate {
+@MainActor @Perceptible final class PictureInPicture: NSObject, AVPictureInPictureControllerDelegate {
     let supported = AVPictureInPictureController.isPictureInPictureSupported()
     private(set) var possible = false
     private(set) var active = false
-    @ObservationIgnored private var controller: AVPictureInPictureController?
-    @ObservationIgnored private var observation: NSKeyValueObservation?
+    @PerceptionIgnored private var controller: AVPictureInPictureController?
+    @PerceptionIgnored private var observation: NSKeyValueObservation?
 
     func attach(_ layer: AVPlayerLayer) {
         guard supported, controller == nil else { return }
@@ -1138,15 +1139,15 @@ private struct PlayerLayerView: UIViewRepresentable {
 }
 
 /// The playing item's position and duration, four times a second while it plays.
-@MainActor @Observable final class PlayerClock {
+@MainActor @Perceptible final class PlayerClock {
     private(set) var position: Double = 0
     /// Zero until the item has a finite duration.
     private(set) var duration: Double = 0
     private(set) var item: AVPlayerItem?
     /// Where the seek bar is held, until the precise seek it ends with lands.
     private(set) var scrubbing: Double?
-    @ObservationIgnored private weak var player: AVPlayer?
-    @ObservationIgnored private var token: Any?
+    @PerceptionIgnored private weak var player: AVPlayer?
+    @PerceptionIgnored private var token: Any?
 
     func attach(_ player: AVPlayer) {
         detach()
@@ -1171,12 +1172,12 @@ private struct PlayerLayerView: UIViewRepresentable {
 
     /// The frame the seek bar shows above its handle while dragged; nil until one is made, or where none can be.
     private(set) var preview: CGImage?
-    @ObservationIgnored private var generator: AVAssetImageGenerator?
-    @ObservationIgnored private var generatorItem: ObjectIdentifier?
+    @PerceptionIgnored private var generator: AVAssetImageGenerator?
+    @PerceptionIgnored private var generatorItem: ObjectIdentifier?
     /// An item AVFoundation made no frame from (an HLS stream, say): no more tries for it.
-    @ObservationIgnored private var previewless: ObjectIdentifier?
-    @ObservationIgnored private var generating = false
-    @ObservationIgnored private var nextPreview: Double?
+    @PerceptionIgnored private var previewless: ObjectIdentifier?
+    @PerceptionIgnored private var generating = false
+    @PerceptionIgnored private var nextPreview: Double?
 
     /// While dragging, only the bar, the time and the preview follow the finger; the playing video is left alone
     /// until the finger lifts (Telegram).
@@ -1249,7 +1250,7 @@ private struct PlayerLayerView: UIViewRepresentable {
 }
 
 /// The item's audio tracks and subtitles, for the options menu.
-@MainActor @Observable final class MediaTracks {
+@MainActor @Perceptible final class MediaTracks {
     struct Group {
         let group: AVMediaSelectionGroup
         let options: [AVMediaSelectionOption]
@@ -1258,7 +1259,7 @@ private struct PlayerLayerView: UIViewRepresentable {
     private(set) var legible: Group?
     /// Bumped by a selection, so the menus show the new choice.
     private var revision = 0
-    @ObservationIgnored private weak var item: AVPlayerItem?
+    @PerceptionIgnored private weak var item: AVPlayerItem?
 
     func load(_ item: AVPlayerItem?) async {
         self.item = item; audio = nil; legible = nil

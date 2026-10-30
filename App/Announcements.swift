@@ -1,9 +1,10 @@
+import Perception
 import SwiftUI
 import TVCore
 
 /// Messages the website publishes for the people using the app (`website/public/messages.json`), each
 /// shown once in an alert. Unlike release notes they also reach App Store and TestFlight builds.
-@MainActor @Observable final class Announcements {
+@MainActor @Perceptible final class Announcements {
     /// The first message this device hasn't shown; it waits while something else is on screen.
     var current: MessageFeed.Message? { pending.first }
     /// Messages not shown yet; they put a New badge on Messages.
@@ -69,7 +70,7 @@ import TVCore
         defaults.set(Array((seen + [message.id]).suffix(200)), forKey: Keys.seen)
         pending = []
         Task {
-            try? await Task.sleep(for: .milliseconds(600))
+            try? await Task.legacySleep(for: .milliseconds(600))
             refresh()
         }
     }
@@ -129,7 +130,7 @@ private struct AnnouncementAlert: ViewModifier {
         .task(id: blocked) {
             settled = false
             guard !blocked else { return }
-            try? await Task.sleep(for: .milliseconds(700))
+            try? await Task.legacySleep(for: .milliseconds(700))
             if !Task.isCancelled { settled = true }
         }
     }

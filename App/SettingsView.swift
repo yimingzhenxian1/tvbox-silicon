@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -629,7 +630,7 @@ struct FormSettingsView: View {
         // `-qaScrollBottom 1` opens Settings at its end for screenshots.
         .task {
             guard UserDefaults.standard.bool(forKey: "qaScrollBottom") else { return }
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.legacySleep(for: .seconds(1))
             proxy.scrollTo("settings.end", anchor: .bottom)
         }
         #endif
@@ -1159,7 +1160,7 @@ struct DiagnosticsView: View {
         .task {
             await refresh()
             while !Task.isCancelled {
-                do { try await Task.sleep(for: .seconds(2)) } catch { break }
+                do { try await Task.legacySleep(for: .seconds(2)) } catch { break }
                 if live { await refresh() }
             }
         }
@@ -1873,7 +1874,7 @@ private struct TVPlayURLPage: View {
 // MARK: Contributors
 
 /// The last 30 days' contributors that Settings lists, kept between launches and asked for at most every six hours.
-@MainActor @Observable final class ContributorList {
+@MainActor @Perceptible final class ContributorList {
     static let shared = ContributorList()
     /// At most this many rows; the list is ranked, so the rest have the fewest commits.
     static let shown = 20

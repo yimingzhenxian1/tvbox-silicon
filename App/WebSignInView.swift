@@ -88,7 +88,7 @@ struct WebSignInView<Code: View>: View {
         var followedUp = false
         var waitedForTicket = 0
         while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.legacySleep(for: .seconds(1))
             let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
             var stored: String?
             if let storage = service.storage, let host = webView.url?.host, storage.hosts.contains(host) {

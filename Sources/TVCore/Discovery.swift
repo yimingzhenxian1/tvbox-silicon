@@ -48,7 +48,7 @@ public enum GlobalSearch {
         let keyword = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !keyword.isEmpty else { return }
         let eligible = sites.filter { $0.searchable && $0.canBrowse(jarURL: jarURL) }
-        let began = ContinuousClock.now
+        let began = LegacyClock.now
         Diagnostics.shared.record(.info, "search", "begin sources=\(eligible.count) plugins=\(eligible.filter { !$0.native }.count) skipped=\(sites.count - eligible.count)")
         defer { Diagnostics.shared.record(.info, "search", "end elapsed=\(began.duration(to: .now)) cancelled=\(Task.isCancelled)") }
         #if os(iOS) || os(tvOS) || os(macOS)
@@ -75,7 +75,7 @@ public enum GlobalSearch {
             var iterator = eligible.makeIterator()
             func enqueue(_ site: Site) {
                 group.addTask {
-                    let started = ContinuousClock.now
+                    let started = LegacyClock.now
                     do {
                         try Task.checkCancellation()
                         let page = try await CatalogClient(site: site, origin: origin, http: http, jarURL: jarURL)

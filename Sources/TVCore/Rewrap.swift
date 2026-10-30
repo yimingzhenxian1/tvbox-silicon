@@ -102,7 +102,7 @@ public enum Rewrap {
     /// A subtitle event's words without markup, as tx3g shows them.
     static func plainText(_ data: Data, codec: String) -> String? {
         guard let text = RemuxPlan.cueText(data, codec: codec) else { return nil }
-        let plain = text.replacing(/<[^>]*>/, with: "")
+        let plain = text.legacyReplacing(#"<[^>]*>"#, with: "")
             .replacingOccurrences(of: "&lt;", with: "<").replacingOccurrences(of: "&gt;", with: ">").replacingOccurrences(of: "&amp;", with: "&")
         return plain.isEmpty ? nil : plain
     }

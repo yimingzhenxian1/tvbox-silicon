@@ -191,7 +191,7 @@ actor HongguoMedia {
     // Complete-file preparation is only for explicit offline downloads. Playback uses HongguoStreams.
     static let shared = HongguoMedia()
     private let server = LocalMediaServer()
-    private let root = URL.cachesDirectory.appending(path: "com.tvbox.yingxia/HongguoMedia")
+    private let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "com.tvbox.yingxia/HongguoMedia")
 
     func prepare(url: URL, backups: [URL] = [], key: String, headers: [String: String], http: HTTPClient) async throws -> URL {
         guard key.count == 32, key.allSatisfy(\.isHexDigit) else { throw HongguoMP4.Failure.invalid }
@@ -201,7 +201,7 @@ actor HongguoMedia {
         }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         prune()
-        let target = root.appending(path: UUID().uuidString + ".mp4")
+        let target = root.appendingPathComponent( UUID().uuidString + ".mp4")
         var complete = false
         defer { if !complete { try? FileManager.default.removeItem(at: target) } }
         // The backups are the same file on other CDN nodes; try them in turn.

@@ -58,7 +58,7 @@ public actor EmbeddedPythonHost {
         ]
         let json = String(decoding: try encoder.encode(input), as: UTF8.self)
         let kind = EmbeddedJarHost.kind(params)
-        let started = ContinuousClock.now
+        let started = LegacyClock.now
         Diagnostics.shared.record(.info, "jar.request", "source=\(site.key) python \(kind) begin")
         let response = try await worker.request(resources: resources, json: json, search: params["wd"] != nil)
         let envelope = try JSONDecoder().decode([String: JSONValue].self, from: Data(response.utf8))

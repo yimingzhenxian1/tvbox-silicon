@@ -101,7 +101,7 @@ enum MusicHTTP {
         return try await withThrowingTaskGroup(of: T.self) { group in
             group.addTask { try await operation() }
             group.addTask {
-                try await Task.sleep(for: .seconds(seconds))
+                try await Task.legacySleep(for: .seconds(seconds))
                 throw MusicProviderError.timeout
             }
             defer { group.cancelAll() }

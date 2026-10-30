@@ -228,7 +228,7 @@ public enum TMDBMatch {
 
     /// Asks the Worker, reporting each step; returns the final answer.
     public static func lookup(_ request: Request, session: URLSession = .shared, progress: @Sendable (Step) -> Void) async throws -> Answer {
-        var urlRequest = URLRequest(url: base.appending(path: "match"), timeoutInterval: 120)
+        var urlRequest = URLRequest(url: base.appendingPathComponent( "match"), timeoutInterval: 120)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
         urlRequest.httpBody = try JSONEncoder().encode(request)
@@ -250,7 +250,7 @@ public enum TMDBMatch {
 
     /// One work's details: a candidate the viewer picked.
     public static func details(_ type: MediaType, id: Int, season: Int?, language: String = TMDBMatch.language, session: URLSession = .shared) async throws -> Details {
-        var parts = URLComponents(url: base.appending(path: "details"), resolvingAgainstBaseURL: false)!
+        var parts = URLComponents(url: base.appendingPathComponent( "details"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [URLQueryItem(name: "type", value: type.rawValue), URLQueryItem(name: "id", value: String(id)),
                             URLQueryItem(name: "language", value: language)] + (season.map { [URLQueryItem(name: "season", value: String($0))] } ?? [])
         return try await get(Details.self, parts.url!, session: session)
@@ -258,14 +258,14 @@ public enum TMDBMatch {
 
     /// TMDB's movies and series for a name, best first.
     public static func search(_ query: String, language: String = TMDBMatch.language, session: URLSession = .shared) async throws -> [SearchResult] {
-        var parts = URLComponents(url: base.appending(path: "search"), resolvingAgainstBaseURL: false)!
+        var parts = URLComponents(url: base.appendingPathComponent( "search"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [URLQueryItem(name: "q", value: query), URLQueryItem(name: "language", value: language)]
         return try await get([SearchResult].self, parts.url!, session: session)
     }
 
     /// The source videos viewers' lookups matched to this work, most recent first.
     public static func sources(_ type: MediaType, id: Int, session: URLSession = .shared) async throws -> [SourceLink] {
-        var parts = URLComponents(url: base.appending(path: "sources"), resolvingAgainstBaseURL: false)!
+        var parts = URLComponents(url: base.appendingPathComponent( "sources"), resolvingAgainstBaseURL: false)!
         parts.queryItems = [URLQueryItem(name: "type", value: type.rawValue), URLQueryItem(name: "id", value: String(id))]
         return try await get([SourceLink].self, parts.url!, session: session)
     }
@@ -273,7 +273,7 @@ public enum TMDBMatch {
     /// The viewer chose this work for a source video ("Not this title?"), so others see that source for it too.
     public static func link(_ request: Request, to type: MediaType, id: Int, season: Int?, session: URLSession = .shared) async {
         struct Body: Encodable { let request: Request; let mediaType: MediaType; let id: Int; let season: Int? }
-        var urlRequest = URLRequest(url: base.appending(path: "link"), timeoutInterval: 20)
+        var urlRequest = URLRequest(url: base.appendingPathComponent( "link"), timeoutInterval: 20)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
         urlRequest.httpBody = try? JSONEncoder().encode(Body(request: request, mediaType: type, id: id, season: season))
@@ -351,8 +351,8 @@ extension TMDBMatch {
         if text.hasPrefix("["), let end = text.firstIndex(of: "]") { text = text[text.index(after: end)...] }
         // Only whole runs of one to four digits: a date (20251220期) or a size (1.18) is not an episode.
         func number(_ digits: Substring) -> Int? { digits.count <= 4 ? Int(digits) : nil }
-        if let match = text.firstMatch(of: /[Ss]\d{1,2}\s*[Ee][Pp]?\s*(\d+)/) { return number(match.1) }
-        if let match = text.firstMatch(of: /(?:第|[Ee][Pp]?\s*)(\d+)/) { return number(match.1) }
+        if let match = text.legacyFirstMatch(#"[Ss]\d{1,2}\s*[Ee][Pp]?\s*(\d+)"#) { return number(match.1) }
+        if let match = text.legacyFirstMatch(#"(?:第|[Ee][Pp]?\s*)(\d+)"#) { return number(match.1) }
         for match in text.matches(of: /\d+(?:\.\d+)?/) {
             let digits = text[match.range]
             guard !digits.contains("."), let value = number(digits) else { continue }
@@ -391,8 +391,8 @@ public actor TMDBMatchStore {
 
     init(cacheURL: URL? = nil, choicesURL: URL? = nil) {
         let fileManager = FileManager.default
-        self.cacheURL = cacheURL ?? fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0].appending(path: "tmdb-matches.json")
-        self.choicesURL = choicesURL ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "tmdb-choices.json")
+        self.cacheURL = cacheURL ?? fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent( "tmdb-matches.json")
+        self.choicesURL = choicesURL ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent( "tmdb-choices.json")
     }
 
     public static func key(source: String, video: String) -> String { "\(source)|\(video)" }

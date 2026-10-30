@@ -1,6 +1,6 @@
 import Foundation
 import Network
-import Observation
+import Perception
 
 /// Sends what plays in Yingxia to Yingxia on another device on the same network, as AirPlay does:
 /// from an iPhone, iPad or Mac to an Apple TV or a Mac.
@@ -71,7 +71,7 @@ public enum PlayOn {
     public static func isPortable(_ url: URL) -> Bool {
         if LiveCatalog.isRoom(url) { return true }
         guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = url.host()?.lowercased(), !host.isEmpty else { return false }
+              let host = url.host?.lowercased(), !host.isEmpty else { return false }
         return !["127.0.0.1", "localhost", "::1", "[::1]", "0.0.0.0"].contains(host)
     }
 
@@ -167,7 +167,7 @@ public final class PlayOnReceiver: @unchecked Sendable {
 }
 
 /// The sending side: the devices with Yingxia open on this network, and sending to one.
-@MainActor @Observable public final class PlayOnBrowser {
+@MainActor @Perceptible public final class PlayOnBrowser {
     public struct Receiver: Identifiable, Hashable, Sendable {
         public let name: String
         public let kind: PlayOn.Kind
@@ -176,7 +176,7 @@ public final class PlayOnReceiver: @unchecked Sendable {
     }
 
     public private(set) var receivers: [Receiver] = []
-    @ObservationIgnored private var browser: NWBrowser?
+    @PerceptionIgnored private var browser: NWBrowser?
 
     public init() {}
 

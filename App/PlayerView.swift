@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import AVKit
 import TVCore
@@ -113,7 +114,7 @@ struct PlaybackView: View {
         .task(id: watch != nil) {
             let delay = UserDefaults.standard.double(forKey: "qaWatchFullScreen")
             guard watch?.fullScreen == false, delay > 0 else { return }
-            try? await Task.sleep(for: .seconds(delay))
+            try? await Task.legacySleep(for: .seconds(delay))
             if !Task.isCancelled { toggleFullScreen() }
         }
         #endif
@@ -266,7 +267,7 @@ struct PlaybackView: View {
         let delay = 3.5
         #endif
         hideTask = Task {
-            try? await Task.sleep(for: .seconds(delay))
+            try? await Task.legacySleep(for: .seconds(delay))
             if !Task.isCancelled { withAnimation(.smooth(duration: 0.3)) { showsChrome = false } }
         }
     }
@@ -829,7 +830,7 @@ private struct NativePlayerView: UIViewControllerRepresentable {
 
 /// Auto-hiding chrome driven by real pointer movement and key presses (not hover
 /// phases, which AVPlayerView's own overlay and layout passes keep re-firing).
-@MainActor @Observable private final class ChromeIdle {
+@MainActor @Perceptible private final class ChromeIdle {
     var visible = true
     private var task: Task<Void, Never>?
     private var monitor: Any?
@@ -861,7 +862,7 @@ private struct NativePlayerView: UIViewControllerRepresentable {
         if !visible { withAnimation(.smooth(duration: 0.25)) { visible = true } }
         task?.cancel()
         task = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2.5))
+            try? await Task.legacySleep(for: .seconds(2.5))
             guard !Task.isCancelled, let self else { return }
             withAnimation(.smooth(duration: 0.4)) { self.visible = false }
             NSCursor.setHiddenUntilMouseMoves(true)

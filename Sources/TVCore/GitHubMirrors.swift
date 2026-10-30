@@ -21,14 +21,14 @@ final class GitHubMirrors: @unchecked Sendable {
     /// addresses with a query, which can carry access tokens that must not reach a mirror.
     static func gitHubFile(_ url: URL) -> URL? {
         guard url.query == nil, url.fragment == nil, url.user == nil else { return nil }
-        if url.scheme == "https", url.host() == "raw.githubusercontent.com" { return url }
+        if url.scheme == "https", url.host == "raw.githubusercontent.com" { return url }
         let text = url.absoluteString
         guard let match = text.range(of: #"^https?://[^/]+/https:/+raw\.githubusercontent\.com/"#, options: .regularExpression) else { return nil }
         return URL(string: "https://raw.githubusercontent.com/" + text[match.upperBound...])
     }
 
     static func mirrors(of file: URL) -> [URL] {
-        var parts = file.path(percentEncoded: true).split(separator: "/").map(String.init)
+        var parts = file.legacyPercentEncodedPath.split(separator: "/").map(String.init)
         if parts.count >= 6, parts[2] == "refs", ["heads", "tags"].contains(parts[3]) { parts.removeSubrange(2...3) }
         var urls: [URL] = []
         if parts.count >= 4 {

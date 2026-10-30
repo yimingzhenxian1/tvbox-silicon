@@ -56,7 +56,7 @@ public final class BilibiliLiveChat: @unchecked Sendable {
         heartbeat = Task { [weak self] in
             while !Task.isCancelled {
                 try? await self?.socket?.send(.data(Self.packet(operation: 2, body: Data("[object Object]".utf8))))
-                try? await Task.sleep(for: .seconds(30))
+                try? await Task.legacySleep(for: .seconds(30))
             }
         }
         Diagnostics.shared.record(.info, "live.chat", "room=\(room) connected uid=\(auth["uid"] ?? 0)")

@@ -280,7 +280,7 @@ extension Bilibili {
 extension Bilibili {
     /// The cid in a Bilibili media address (…/upgcxcode/…/<cid>-<n>-<quality>.mp4), as the phone app casts it.
     public static func castCID(_ url: URL) -> Int? {
-        guard url.path.contains("xcode"), let match = url.lastPathComponent.firstMatch(of: /^(\d+)-\d+-\d+\.(mp4|m4s|flv)$/) else { return nil }
+        guard url.path.contains("xcode"), let match = url.lastPathComponent.legacyFirstMatch(#"^(\d+)-\d+-\d+\.(mp4|m4s|flv)$"#) else { return nil }
         return Int(match.1)
     }
 

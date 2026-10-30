@@ -20,7 +20,7 @@ public actor LocalMediaServer {
         guard path.hasPrefix(root.path + "/") else { throw TVError.invalidURL }
         self.root = root
         let base = try await start(root: root)
-        return base.appending(path: String(path.dropFirst(root.path.count + 1)))
+        return base.appendingPathComponent( String(path.dropFirst(root.path.count + 1)))
     }
 
     private func start(root: URL) async throws -> URL {
@@ -81,7 +81,7 @@ public actor LocalMediaServer {
         var parts = path.split(separator: "/").map(String.init)
         guard parts.first == token, parts.count > 1, !parts.contains("..") else { send(connection, status: 404); return }
         parts.removeFirst()
-        let file = parts.reduce(root) { $0.appending(path: $1) }.standardizedFileURL
+        let file = parts.reduce(root) { $0.appendingPathComponent( $1) }.standardizedFileURL
         guard file.path.hasPrefix(root.path + "/"),
               let size = (try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init),
               let handle = try? FileHandle(forReadingFrom: file) else { send(connection, status: 404); return }
