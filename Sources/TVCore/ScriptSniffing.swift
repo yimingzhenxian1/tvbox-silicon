@@ -14,8 +14,8 @@ extension Site {
     static func sniffedRuntime(_ data: Data) -> SourceRuntime? {
         guard !data.starts(with: Data("PK".utf8)) else { return nil }
         let text = String(decoding: data.prefix(256 * 1024), as: UTF8.self)
-        let python = #/(?m)^[ \t]*(from[ \t]+base(\.spider)?[ \t]+import|import[ \t]+base\.spider)\b/#
-        return text.contains(python) ? .python : nil
+        let python = #"(?m)^[ \t]*(from[ \t]+base(\.spider)?[ \t]+import|import[ \t]+base\.spider)\b"#
+        return (text.range(of: python, options: .regularExpression) != nil) ? .python : nil
     }
 }
 
