@@ -9,8 +9,8 @@ REVISION=c1ed06aaef34c8dccf71e236d1ffa20918a77cfb
 BOOT="$WORK/boot-jdk/jdk-26.0.2.1+1/Contents/Home"
 TARGET="${1:-ios}"
 case "$TARGET" in
-  ios) SDK=iphoneos; CONF=ios-aarch64-zero-release; MINIMUM=-miphoneos-version-min=17.0 ;;
-  ios-simulator) SDK=iphonesimulator; CONF=ios-aarch64-zero-simulator; MINIMUM=-mios-simulator-version-min=17.0 ;;
+  ios) SDK=iphoneos; CONF=ios-aarch64-zero-release; MINIMUM=-miphoneos-version-min=15.6 ;;
+  ios-simulator) SDK=iphonesimulator; CONF=ios-aarch64-zero-simulator; MINIMUM=-mios-simulator-version-min=15.6 ;;
   tvos) SDK=appletvos; CONF=tvos-aarch64-zero-release; MINIMUM=-mtvos-version-min=17.0 ;;
   tvos-simulator) SDK=appletvsimulator; CONF=tvos-aarch64-zero-simulator; MINIMUM=-mtvos-simulator-version-min=17.0 ;;
   *) echo "Usage: $0 [ios|ios-simulator|tvos|tvos-simulator]" >&2; exit 2 ;;

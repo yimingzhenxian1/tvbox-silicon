@@ -238,7 +238,7 @@ public enum Feedback {
         let base = endpoint
         #endif
         let issues = numbers.prefix(checked).map(String.init).joined(separator: ",")
-        let address = base.appendingPathComponent( "replies").appendingPathComponent(queryItems: [URLQueryItem(name: "issues", value: issues)])
+        let address = base.appendingPathComponent( "replies").legacyAppending(queryItems: [URLQueryItem(name: "issues", value: issues)])
         let (data, response) = try await URLSession.shared.data(for: URLRequest(url: address, timeoutInterval: 20))
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw Failure.failed }
         return try statuses(data)

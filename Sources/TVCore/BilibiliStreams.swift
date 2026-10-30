@@ -28,7 +28,7 @@ public enum BilibiliStreams {
     public static func asset(for url: URL) -> AVURLAsset? {
         guard url.scheme == scheme else { return nil }
         let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": Bilibili.mediaHeaders,
-                                                   AVURLAssetHTTPUserAgentKey: Bilibili.userAgent])
+                                                   "AVURLAssetHTTPUserAgentKey": Bilibili.userAgent])
         asset.resourceLoader.setDelegate(PlaylistLoader.shared, queue: PlaylistLoader.shared.queue)
         return asset
     }

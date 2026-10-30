@@ -1,10 +1,11 @@
+import Perception
 import SwiftUI
 import TVCore
 
 /// Songs saved for listening without a connection, and those still on their way. Apple TV keeps them
 /// in Caches, as it does episodes, and tvOS may clear them when it runs low on space.
 struct MusicDownloadsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     /// Inside the Downloads page, which has its own title.
     var embedded = false
     @State private var confirmsDeleteAll = false
@@ -14,6 +15,7 @@ struct MusicDownloadsView: View {
     private var saved: [MusicDownload] { library.completed.sorted { ($0.finished ?? $0.created) > ($1.finished ?? $1.created) } }
 
     var body: some View {
+        WithPerceptionTracking {
         let tracks = saved.map(\.track)
         let page = list(tracks)
             .screenBackdrop()
@@ -50,6 +52,7 @@ struct MusicDownloadsView: View {
                     }
                 }
                 #endif
+        }
         }
     }
 
@@ -161,12 +164,13 @@ struct MusicDownloadsView: View {
 /// the songs still on their way, and Remove Download for all of it.
 struct MusicDownloadedCollectionView: View {
     let id: String
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var confirmsRemove = false
     private var library: MusicDownloadLibrary { .shared }
 
     var body: some View {
+        WithPerceptionTracking {
         if let entry = library.collection(id: id) {
             let collection = entry.collection
             let items = library.items(in: entry)
@@ -220,6 +224,7 @@ struct MusicDownloadedCollectionView: View {
         } else {
             ContentUnavailableView(L10n.text("No Downloaded Songs"), systemImage: "arrow.down.circle").screenBackdrop()
         }
+        }
     }
 
     private func header(_ collection: MusicCollection, _ tracks: [MusicTrack]) -> some View {
@@ -266,6 +271,7 @@ private struct MusicDownloadedTile: View {
     @State private var hovering = false
 
     var body: some View {
+        WithPerceptionTracking {
         let collection = entry.collection
         let saved = MusicDownloadLibrary.shared.items(in: entry).filter { $0.status == .completed }.count
         let link = RouteLink { MusicDownloadedCollectionView(id: entry.id) } label: {
@@ -288,6 +294,7 @@ private struct MusicDownloadedTile: View {
             .onHover { hovering = $0 }
             .animation(.easeOut(duration: 0.15), value: hovering)
         #endif
+        }
     }
 
     #if os(tvOS)
@@ -302,6 +309,7 @@ private struct MusicPendingActions: View {
     let pending: [MusicDownload]
 
     var body: some View {
+        WithPerceptionTracking {
         let library = MusicDownloadLibrary.shared
         let paused = library.isPaused
         HStack(spacing: 8) {
@@ -327,6 +335,7 @@ private struct MusicPendingActions: View {
         .buttonStyle(.bordered).buttonBorderShape(.capsule).controlSize(.small)
         #endif
         .fixedSize()
+        }
     }
 }
 
@@ -337,6 +346,7 @@ private struct MusicPendingRow: View {
     @State private var choosing = false
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         Button { choosing = true } label: { row.contentShape(.rect) }
             .glassRow()
@@ -347,6 +357,7 @@ private struct MusicPendingRow: View {
         #else
         row
         #endif
+        }
     }
 
     private var row: some View {
@@ -402,6 +413,7 @@ struct MusicDownloadsLink: View {
     var card = false
 
     var body: some View {
+        WithPerceptionTracking {
         let library = MusicDownloadLibrary.shared
         RouteLink { MusicDownloadsView() } label: {
             HStack(spacing: MusicLayout.gap) {
@@ -427,6 +439,7 @@ struct MusicDownloadsLink: View {
             .contentShape(Rectangle())
         }
         .glassRow()
+        }
     }
 
     private func details(_ library: MusicDownloadLibrary) -> String {
@@ -444,6 +457,7 @@ struct MusicDownloadMenuItems: View {
     let tracks: [MusicTrack]
 
     var body: some View {
+        WithPerceptionTracking {
         let library = MusicDownloadLibrary.shared
         let saved = tracks.compactMap { library.item(for: $0) }
         if !tracks.isEmpty, saved.count == tracks.count {
@@ -452,6 +466,7 @@ struct MusicDownloadMenuItems: View {
             }
         } else {
             Button { library.download(tracks) } label: { Label(L10n.text("Download"), systemImage: "arrow.down.circle") }
+        }
         }
     }
 }
@@ -465,6 +480,7 @@ struct MusicDownloadButton: View {
     var side: CGFloat?
 
     var body: some View {
+        WithPerceptionTracking {
         let library = MusicDownloadLibrary.shared
         let items = tracks.compactMap { library.item(for: $0) }
         // Songs saved one by one before still leave the button on until the album or playlist is kept too.
@@ -481,5 +497,6 @@ struct MusicDownloadButton: View {
         }
         .disabled(tracks.isEmpty || queued)
         .help(label).accessibilityLabel(label)
+        }
     }
 }

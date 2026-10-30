@@ -56,7 +56,7 @@ import TVCore
                 }
                 #if os(tvOS) || os(macOS)
                 .task { BilibiliCastController.shared.start(store) }
-                .onChange(of: store.extrasUnlocked) { _, unlocked in if unlocked { BilibiliCastController.shared.start(store) } }
+                .legacyOnChange(of: store.extrasUnlocked) { _, unlocked in if unlocked { BilibiliCastController.shared.start(store) } }
                 #endif
                 #if os(tvOS) || os(macOS)
                 .task { PlayOnController.shared.start(store) }
@@ -66,8 +66,8 @@ import TVCore
                 .sheet(item: $douyinHandoff) { DouyinHandoffView(link: $0) }
                 #endif
                 // A launch that ends while active, without passing through here, crashed or was ended.
-                .onChange(of: scenePhase, initial: true) { _, phase in ErrorReports.shared.onScreen(phase == .active) }
-                .onChange(of: scenePhase) { _, phase in
+                .legacyOnChange(of: scenePhase, initial: true) { _, phase in ErrorReports.shared.onScreen(phase == .active) }
+                .legacyOnChange(of: scenePhase) { _, phase in
                     if phase == .background {
                         Task { _ = await Diagnostics.shared.snapshot(); ErrorReports.shared.save() }
                     }

@@ -1,8 +1,9 @@
+import Perception
 import SwiftUI
 import TVCore
 
 struct FavoriteHeartButton: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let item: FavoriteItem
     let name: String
     /// Draws a dark badge so the heart stays readable on poster artwork.
@@ -10,6 +11,7 @@ struct FavoriteHeartButton: View {
     /// An empty artwork heart stays hidden until this is true. A saved heart ignores it.
     var revealed = true
     var body: some View {
+        WithPerceptionTracking {
         let on = store.favorites.contains(item)
         let shown = on || !onArtwork || revealed
         Button { store.favorites.toggle(item) } label: {
@@ -24,6 +26,7 @@ struct FavoriteHeartButton: View {
         .allowsHitTesting(shown)
         .accessibilityHidden(!shown)
         .accessibilityLabel(on ? L10n.text("Remove %@ from favorites", name) : L10n.text("Add %@ to favorites", name))
+        }
     }
 }
 
@@ -53,16 +56,18 @@ extension View {
 }
 
 struct FavoriteMenuButton: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let item: FavoriteItem
     let name: String
     var body: some View {
+        WithPerceptionTracking {
         let on = store.favorites.contains(item)
         // A menu row is short: the title is already on the card it was opened from.
         Button(L10n.text(on ? "Unlike" : "Like"), systemImage: on ? "heart.slash" : "heart") {
             store.favorites.toggle(item)
         }
         .accessibilityLabel(on ? L10n.text("Remove %@ from favorites", name) : L10n.text("Add %@ to favorites", name))
+        }
     }
 }
 
@@ -75,6 +80,7 @@ struct ArtworkBadgeButton: View {
     let action: () -> Void
     @State private var hovering = false
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
                 .artworkBadge(fill: destructive && hovering ? Brand.rose : nil)
@@ -83,7 +89,8 @@ struct ArtworkBadgeButton: View {
         #if !os(tvOS)
         .onHover { hovering = $0 }
         #endif
-        .animation(.smooth(duration: 0.12), value: hovering)
+        .animation(.easeInOut(duration: 0.12), value: hovering)
         .accessibilityLabel(label).help(label)
+        }
     }
 }

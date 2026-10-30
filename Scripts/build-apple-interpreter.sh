@@ -27,13 +27,13 @@ TARGET="${1:-macos}"
 FLAGS=(-DUNICORN_INTERPRETER=ON -DUNICORN_ARCH=aarch64 -DUNICORN_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release)
 case "$TARGET" in
   macos) ;;
-  ios) FLAGS+=(-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos '-DCMAKE_C_FLAGS=-target arm64-apple-ios17.0') ;;
-  ios-simulator) FLAGS+=(-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator '-DCMAKE_C_FLAGS=-target arm64-apple-ios17.0-simulator') ;;
+  ios) FLAGS+=(-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos '-DCMAKE_C_FLAGS=-target arm64-apple-ios15.6') ;;
+  ios-simulator) FLAGS+=(-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator '-DCMAKE_C_FLAGS=-target arm64-apple-ios15.6-simulator') ;;
   tvos) FLAGS+=(-DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvos '-DCMAKE_C_FLAGS=-target arm64-apple-tvos17.0') ;;
   tvos-simulator) FLAGS+=(-DCMAKE_SYSTEM_NAME=tvOS -DCMAKE_OSX_SYSROOT=appletvsimulator '-DCMAKE_C_FLAGS=-target arm64-apple-tvos17.0-simulator') ;;
   *) echo "Usage: $0 [macos|ios|ios-simulator|tvos|tvos-simulator]" >&2; exit 2 ;;
 esac
-if [ "$TARGET" != macos ]; then FLAGS+=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0); fi
+if [ "$TARGET" != macos ]; then FLAGS+=(-DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.6); fi
 OUTPUT="$WORK/unicorn-tci-$TARGET"
 cmake -S "$SOURCE" -B "$OUTPUT" "${FLAGS[@]}"
 cmake --build "$OUTPUT" -j "${JOBS:-4}"

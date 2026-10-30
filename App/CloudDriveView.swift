@@ -1,10 +1,11 @@
+import Perception
 import SwiftUI
 import TVCore
 #if os(macOS)
 import WebKit
 
 struct CloudDriveView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var accounts = CloudDriveAccounts()
     @State private var login: CloudProvider?
     /// Baidu and Aliyun sign in with a code to scan, as on Apple TV.
@@ -16,6 +17,7 @@ struct CloudDriveView: View {
     @State private var saving = false
     @State private var showsManual = false
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("Cloud Drive Accounts"), symbol: "externaldrive") {
             SettingsGroup(footer: store.extrasUnlocked ? L10n.text("Sign in to Quark and UC on their official page, and to Baidu and Aliyun by scanning a code with their phone app. Yingxia stores the login on this Mac and supplies it to the plugins you run.")
                             : L10n.text("Sign in to Quark and UC on their official page. Yingxia stores the login on this Mac.")) {
@@ -78,6 +80,7 @@ struct CloudDriveView: View {
                 error = nil
             }
         }
+        }
     }
     private func save() {
         saving = true; notice = nil; error = nil
@@ -109,6 +112,7 @@ struct CloudLoginView: View {
     /// Quark's approved sign-in ticket. FTY's player needs the mobile ticket derived from it.
     @State private var ticket: String?
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: provider.symbol)
@@ -144,6 +148,7 @@ struct CloudLoginView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 900, height: 680)
+        }
     }
 
     /// Saves once the page has a drive cookie. Quark also waits briefly for the sign-in ticket the page
@@ -256,11 +261,12 @@ private struct CloudLoginBrowser: NSViewRepresentable {
 /// drive's own sign-in page, with the code for another phone as the alternative. Plugins read the
 /// saved sign-in on their next request.
 struct CloudDriveView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var accounts = CloudDriveAccounts()
     @State private var login: CloudProvider?
     @State private var error: String?
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("Cloud Drive Accounts"), symbol: "externaldrive") {
             SettingsGroup(footer: footer) {
                 ForEach(CloudProvider.shown(store)) { provider in
@@ -293,6 +299,7 @@ struct CloudDriveView: View {
             else { CloudQRLoginView(drive: provider.qrDrive) { reload() } }
         }
         #endif
+        }
     }
     private var footer: String {
         #if os(iOS)

@@ -69,7 +69,7 @@ struct RemuxPlan: Sendable, Equatable {
         let first = tracks.count, unsubtitled = !tracks.contains { $0.kind == .subtitle }
         for (number, file) in files.enumerated() {
             // HLS wants a BCP 47 tag; a source's "简体" would make the playlist invalid.
-            let language = file.language.wholeMatch(of: /[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*/) != nil ? file.language : ""
+            let language = file.language.legacyFirstMatch(#"^(?:[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*)$"#) != nil ? file.language : ""
             tracks.append(Track(stream: Stream(index: -1, kind: .subtitle, codec: "external", language: language, title: file.name,
                                                isDefault: unsubtitled && number == 0, isText: true)))
         }

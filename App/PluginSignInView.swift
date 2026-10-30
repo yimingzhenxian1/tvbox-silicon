@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -28,6 +29,7 @@ struct PluginSignInView: View {
     private var expired: Bool { now >= prompt.expires }
 
     var body: some View {
+        WithPerceptionTracking {
         content
         #if os(macOS)
         .frame(minWidth: 640, minHeight: 360)
@@ -47,6 +49,7 @@ struct PluginSignInView: View {
                 try? await Task.legacySleep(for: .seconds(1))
                 now = Date()
             }
+        }
         }
     }
 

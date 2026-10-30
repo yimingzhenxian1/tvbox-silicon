@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -8,11 +9,13 @@ struct MusicArtwork: View {
     var size: CGFloat?
     var symbol = "music.note"
     var body: some View {
+        WithPerceptionTracking {
         Color.clear
             .aspectRatio(1, contentMode: .fit)
             .overlay { PosterImage(url: url, symbol: symbol) }
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: size.map { max(4, $0 * 0.12) } ?? 12, style: .continuous))
+        }
     }
 }
 
@@ -21,10 +24,11 @@ struct MusicArtwork: View {
 /// It is always the same height; the lyrics and everything else are on the Now Playing screen,
 /// which a tap opens. `inline` is the narrower form beside a minimized tab bar.
 struct MusicMiniPlayer: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     var inline = false
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         HStack(spacing: inline ? 10 : 12) {
             MusicArtwork(url: music.track?.artwork, size: inline ? 28 : 34)
@@ -62,6 +66,7 @@ struct MusicMiniPlayer: View {
         // `-qaNowPlaying artwork|lyrics|queue` opens Now Playing on that panel, for screenshots.
         .task { if UserDefaults.standard.string(forKey: "qaNowPlaying") != nil { music.presentsPlayer = true } }
         #endif
+        }
     }
 
     private func button(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {

@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 #if os(iOS)
 import Photos
 import SwiftUI
@@ -32,7 +34,8 @@ struct WebSignInView<Code: View>: View {
     }
 
     var body: some View {
-        NavigationStack {
+        WithPerceptionTracking {
+        NBNavigationStack {
             Group {
                 if showsCode { code() } else { page }
             }
@@ -48,6 +51,7 @@ struct WebSignInView<Code: View>: View {
             }
         }
         .task { await watch() }
+        }
     }
 
     private var page: some View {
@@ -279,6 +283,7 @@ struct SaveCodeButton: View {
     @State private var error: String?
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 8) {
             Button { Task { await save() } } label: {
                 Label(L10n.text(saved ? "Saved to Photos" : "Save Code to Photos"), systemImage: saved ? "checkmark" : "square.and.arrow.down")
@@ -297,6 +302,7 @@ struct SaveCodeButton: View {
                 Text(L10n.text("In the %@ app, tap Scan, then choose this photo.", app))
                     .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+        }
         }
     }
 

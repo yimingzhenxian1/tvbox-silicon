@@ -1,3 +1,4 @@
+import NavigationBackport
 import Perception
 import SwiftUI
 import AVKit
@@ -172,8 +173,9 @@ struct CatalogDanmakuSettingsView: View {
     @State private var showsImporter = false
 
     var body: some View {
-        @Bindable var model = model
-        NavigationStack {
+        @Perception.Bindable var model = model
+        WithPerceptionTracking {
+        NBNavigationStack {
             Form {
                 Section {
                     Toggle(L10n.text("Show Danmaku"), isOn: $model.enabled).settingsSwitch().accessibilityIdentifier("danmaku.enabled")
@@ -243,7 +245,7 @@ struct CatalogDanmakuSettingsView: View {
                         #if os(iOS)
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                         #endif
-                        .onChange(of: server) { _, _ in
+                        .legacyOnChange(of: server) { _, _ in
                             work?.cancel(); busy = false; animes = []; episodes = []; selectedAnime = nil; searched = false; error = nil
                         }
                     Button(L10n.text("Use Default URL")) { server = CatalogDanmakuClient.defaultServer }
@@ -261,6 +263,7 @@ struct CatalogDanmakuSettingsView: View {
         .fileImporter(isPresented: $showsImporter, allowedContentTypes: [.xml, .json]) { result in
             do { try model.importFile(result.get()); dismiss() }
             catch { self.error = error.localizedDescription }
+        }
         }
     }
 

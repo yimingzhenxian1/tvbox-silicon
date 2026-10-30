@@ -1,3 +1,4 @@
+import NavigationBackport
 import Perception
 import SwiftUI
 import TVCore
@@ -13,6 +14,7 @@ struct SettingsGroup<Content: View>: View {
     var footer: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         TVSettingsSection(title: title, footer: footer) { content }
         #else
@@ -24,6 +26,7 @@ struct SettingsGroup<Content: View>: View {
             if let footer { Text(footer) }
         }
         #endif
+        }
     }
 }
 
@@ -36,6 +39,7 @@ struct SettingsRow<Trailing: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var trailing: Trailing
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         HStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
@@ -53,6 +57,7 @@ struct SettingsRow<Trailing: View>: View {
         #else
         LabeledContent { trailing } label: { FormLabel(symbol: symbol, tint: tint, title: title, subtitle: subtitle) }
         #endif
+        }
     }
 }
 
@@ -70,11 +75,13 @@ struct SettingsLinkRow<Destination: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var destination: () -> Destination
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         TVSettingsLink(title: title, value: subtitle, destination: destination)
         #else
         RouteLink(destination: destination) { FormLabel(symbol: symbol, tint: tint, title: title, subtitle: subtitle) }
         #endif
+        }
     }
 }
 
@@ -84,11 +91,13 @@ struct SettingsActionRow: View {
     var destructive = false
     let action: () -> Void
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         TVSettingsAction(title: title, destructive: destructive, action: action)
         #else
         Button(title, role: destructive ? .destructive : nil, action: action).formRowButton()
         #endif
+        }
     }
 }
 
@@ -125,11 +134,13 @@ struct SettingsPage<Content: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         TVSettingsSubpage(symbol: symbol, title: title, subtitle: subtitle) { content }
         #else
         Form { Group { content }.settingsRows() }.settingsForm(title)
         #endif
+        }
     }
 }
 
@@ -145,11 +156,13 @@ enum SettingsStyle {
 
 struct SettingsView: View {
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         TVSettingsView()
         #else
         FormSettingsView()
         #endif
+        }
     }
 }
 
@@ -181,6 +194,7 @@ struct SettingsIcon: View {
     let symbol: String
     var tint: Color = .gray
     var body: some View {
+        WithPerceptionTracking {
         #if os(iOS)
         // Black (Douyin) would vanish in dark mode, so it follows the text colour.
         Image(systemName: symbol)
@@ -195,6 +209,7 @@ struct SettingsIcon: View {
             .background(tint.gradient, in: RoundedRectangle(cornerRadius: FormMetrics.icon * 0.26, style: .continuous))
             .accessibilityHidden(true)
         #endif
+        }
     }
 }
 
@@ -205,12 +220,14 @@ struct FormLabel: View {
     let title: String
     var subtitle: String? = nil
     var body: some View {
+        WithPerceptionTracking {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 if let subtitle, !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
             }
         } icon: { SettingsIcon(symbol: symbol, tint: tint) }
+        }
     }
 }
 
@@ -223,6 +240,7 @@ struct FormLink<Destination: View>: View {
     var warning = false
     @ViewBuilder var destination: () -> Destination
     var body: some View {
+        WithPerceptionTracking {
         RouteLink(destination: destination) {
             #if os(iOS)
             // One line, as in the Settings app: the title keeps its width and a long value is cut
@@ -237,6 +255,7 @@ struct FormLink<Destination: View>: View {
                 if let value, !value.isEmpty { valueText(value) }
             } label: { FormLabel(symbol: symbol, tint: tint, title: title) }
             #endif
+        }
         }
     }
     private func valueText(_ value: String) -> some View {
@@ -253,6 +272,7 @@ struct SettingsWebRow: View {
     let url: URL
     @Environment(\.openURL) private var openURL
     var body: some View {
+        WithPerceptionTracking {
         Button { openURL(url) } label: {
             HStack(spacing: 8) {
                 FormLabel(symbol: symbol, tint: tint, title: title, subtitle: subtitle).foregroundStyle(.primary)
@@ -267,6 +287,7 @@ struct SettingsWebRow: View {
         // A button in a list draws its title in the tint; this one reads like the rows around it.
         .tint(.primary)
         #endif
+        }
     }
 }
 
@@ -332,8 +353,8 @@ private enum SettingsNote {
 }
 
 struct FormSettingsView: View {
-    @Environment(Store.self) private var store
-    @Environment(Updates.self) private var updates
+    @Perception.Environment(Store.self) private var store
+    @Perception.Environment(Updates.self) private var updates
     @State private var cloudSummary = ""
     @State private var bilibiliSummary = ""
     @State private var douyinSummary = ""
@@ -357,7 +378,8 @@ struct FormSettingsView: View {
     }
 
     var body: some View {
-        @Bindable var store = store
+        @Perception.Bindable var store = store
+        WithPerceptionTracking {
         ScrollViewReader { proxy in
         Form { Group {
             heroSection
@@ -476,7 +498,7 @@ struct FormSettingsView: View {
                         FormLabel(symbol: "tv.and.mediabox.fill", tint: BilibiliMark.blue, title: L10n.text("Cast from the Bilibili App"),
                                   subtitle: L10n.text("With your phone on the same network, tap the TV button in a Bilibili video and choose %@.", L10n.text("Yingxia")))
                     }
-                    .onChange(of: receivesCasts) { _, on in
+                    .legacyOnChange(of: receivesCasts) { _, on in
                         if on { BilibiliCastController.shared.start(store) } else { BilibiliCastController.shared.stop() }
                     }
                 }
@@ -485,7 +507,7 @@ struct FormSettingsView: View {
                               subtitle: L10n.text("With Yingxia open here, your other devices on the same network can send it what they play: tap Play On in their player."))
                 }
                 .settingsSwitch()
-                .onChange(of: receivesPlayOn) { _, on in
+                .legacyOnChange(of: receivesPlayOn) { _, on in
                     if on { PlayOnController.shared.start(store) } else { PlayOnController.shared.stop() }
                 }
                 FormLink(symbol: "play.fill", tint: Brand.indigo, title: L10n.text("Play a URL")) { PlayURLView() }
@@ -526,7 +548,7 @@ struct FormSettingsView: View {
                     FormLabel(symbol: "ladybug.fill", tint: .red, title: L10n.text("Send Error Reports"), subtitle: errorReportsNote)
                 }
                 .settingsSwitch()
-                .onChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
+                .legacyOnChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
                 Toggle(isOn: $looksUpTMDB) {
                     FormLabel(symbol: "film.stack.fill", tint: .teal, title: L10n.text("Look Up Titles on TMDB"), subtitle: tmdbNote)
                 }
@@ -638,7 +660,7 @@ struct FormSettingsView: View {
         .settingsForm(L10n.text("Settings"))
         #if os(iOS)
         .sheet(isPresented: $addingSubscription) { AddSubscriptionSheet() }
-        .navigationDestination(isPresented: $showsFeedback) { FeedbackView() }
+        .nbNavigationDestination(isPresented: $showsFeedback) { FeedbackView() }
         #if DEBUG
         // `-qaAddSubscription 1` opens the sheet for screenshots.
         .onAppear { if UserDefaults.standard.bool(forKey: "qaAddSubscription") { addingSubscription = true } }
@@ -647,6 +669,7 @@ struct FormSettingsView: View {
         // Refreshed whenever Settings reappears, so a sign-in on the account page shows here.
         .onAppear { bilibiliSummary = BilibiliAccount.load().summary; douyinSummary = DouyinAccount.load().summary; cloudSummary = CloudProvider.summary() }
         .task(id: store.extrasUnlocked) { if store.extrasUnlocked { await ContributorList.shared.check() } }
+        }
     }
 
     @ViewBuilder private var heroSection: some View {
@@ -745,10 +768,12 @@ struct FormSettingsView: View {
 /// The hero card's fill: the row colour lit from above by the icon's cyan and indigo.
 private struct SettingsHeroGlow: View {
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             SettingsStyle.rowFill
             RadialGradient(colors: [Brand.cyan.opacity(0.32), .clear], center: .top, startRadius: 0, endRadius: 230)
             RadialGradient(colors: [Brand.indigo.opacity(0.22), .clear], center: .bottomTrailing, startRadius: 0, endRadius: 260)
+        }
         }
     }
 }
@@ -762,6 +787,7 @@ private struct SettingsTile: View {
     let subtitle: String
     var external = false
     var body: some View {
+        WithPerceptionTracking {
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
@@ -782,6 +808,7 @@ private struct SettingsTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SettingsStyle.rowFill, in: shape)
         .contentShape(shape)
+        }
     }
 }
 
@@ -796,13 +823,14 @@ private struct PressableStyle: ButtonStyle {
 
 /// Playback on iPhone and iPad: the player's gestures, danmaku and picture, each note under the group it explains.
 struct PlaybackSettingsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @AppStorage(DanmakuPreference.key) private var showsDanmaku = true
     @AppStorage(SpeedBoost.key) private var holdSpeed = SpeedBoost.standard
     @AppStorage(PictureLevel.key) private var slidesLevels = true
     @AppStorage(VideoEnhancement.upscaleKey) private var upscalesVideo = false
     @AppStorage(VideoEnhancement.smoothKey) private var smoothsVideo = false
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("Playback"), symbol: "slider.horizontal.below.rectangle") {
             SettingsGroup(footer: L10n.text("Touch and hold the video to play at this speed. Slide sideways to change it, or slide down to keep it after you let go.")) {
                 Picker(selection: $holdSpeed) {
@@ -842,6 +870,7 @@ struct PlaybackSettingsView: View {
                 }
             }
         }
+        }
     }
 }
 
@@ -850,13 +879,14 @@ struct PrivacySettingsView: View {
     @AppStorage(ErrorReports.key) private var sendsErrorReports = true
     @AppStorage(TMDBMatch.key) private var looksUpTMDB = true
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("Privacy"), symbol: "hand.raised.fill") {
             SettingsGroup(footer: SettingsNote.errorReports) {
                 Toggle(isOn: $sendsErrorReports) {
                     FormLabel(symbol: "ladybug.fill", tint: .red, title: L10n.text("Send Error Reports"))
                 }
                 .settingsSwitch()
-                .onChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
+                .legacyOnChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
             }
             SettingsGroup(footer: SettingsNote.tmdb) {
                 Toggle(isOn: $looksUpTMDB) {
@@ -865,20 +895,22 @@ struct PrivacySettingsView: View {
                 .settingsSwitch()
             }
         }
+        }
     }
 }
 
 /// Adding a subscription: the address, a shortcut to the default one, and Add in the toolbar.
 /// Closes itself once the import succeeds; a failure stays here under the field.
 private struct AddSubscriptionSheet: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     private var canAdd: Bool { !store.importing && !store.subscriptionAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
-        @Bindable var store = store
-        NavigationStack {
+        @Perception.Bindable var store = store
+        WithPerceptionTracking {
+        NBNavigationStack {
             Form { Group {
                 Section {
                     TextField(L10n.text("Subscription URL (TVBox JSON, M3U or TXT)"), text: $store.subscriptionAddress, prompt: Text(L10n.text("Subscription URL (TVBox JSON, M3U or TXT)")))
@@ -917,6 +949,7 @@ private struct AddSubscriptionSheet: View {
         }
         .presentationDetents([.medium, .large])
         .onAppear { store.error = nil; focused = true }
+        }
     }
 
     private func add() {
@@ -931,11 +964,12 @@ private struct AddSubscriptionSheet: View {
 
 /// One subscription: switch it on or off, move it (earlier subscriptions win duplicate sources), or remove it.
 private struct SubscriptionDetailView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let entry: SubscriptionEntry
     @State private var confirmsRemoval = false
     var body: some View {
+        WithPerceptionTracking {
         let current = store.subscriptions.first { $0.address == entry.address } ?? entry
         let index = store.subscriptions.firstIndex { $0.address == entry.address } ?? 0
         let failure = store.subscriptionErrors[entry.address]
@@ -974,16 +1008,18 @@ private struct SubscriptionDetailView: View {
         .confirmationDialog(L10n.text("Remove"), isPresented: $confirmsRemoval) {
             Button(L10n.text("Remove"), role: .destructive) { store.removeSubscription(current); dismiss() }
         }
+        }
     }
 }
 
 /// Removing many subscriptions at once: tick them, or take all or the switched-off ones, then remove.
 private struct RemoveSubscriptionsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var selection: Set<String> = []
     @State private var confirmsRemoval = false
     var body: some View {
+        WithPerceptionTracking {
         let chosen = store.subscriptions.filter { selection.contains($0.address) }
         let all = chosen.count == store.subscriptions.count
         let off = store.subscriptions.filter { !$0.enabled }.map(\.address)
@@ -1019,15 +1055,17 @@ private struct RemoveSubscriptionsView: View {
         .confirmationDialog(L10n.text("Remove %lld Subscriptions", chosen.count), isPresented: $confirmsRemoval) {
             Button(L10n.text("Remove"), role: .destructive) { store.removeSubscriptions(Set(chosen.map(\.address))); dismiss() }
         }
+        }
     }
 }
 
 /// Playing a media address directly.
 private struct PlayURLView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var address = ""
     private var empty: Bool { address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var body: some View {
+        WithPerceptionTracking {
         Form { Group {
             Section {
                 TextField(L10n.text("HTTP / HTTPS media URL"), text: $address, prompt: Text(L10n.text("HTTP / HTTPS media URL")))
@@ -1045,6 +1083,7 @@ private struct PlayURLView: View {
             }
         }.settingsRows() }
         .settingsForm(L10n.text("Play a URL"))
+        }
     }
     private func open() {
         guard !empty else { return }
@@ -1059,6 +1098,7 @@ struct LicensesView: View {
         (Bundle.main.url(forResource: "ThirdPartyNotices", withExtension: "txt").flatMap { try? String(contentsOf: $0, encoding: .utf8) }) ?? "DexLoom · MIT License"
     }
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         // Each paragraph is a row the remote can land on, which is how the page scrolls.
         SettingsPage(title: L10n.text("Open Source Licenses"), symbol: "doc.plaintext", subtitle: "Yingxia \(Brand.copyright)") {
@@ -1087,6 +1127,7 @@ struct LicensesView: View {
             }
         }
         #endif
+        }
     }
     #if os(tvOS)
     /// A glass row's focus, in a rounded rectangle: a capsule around a tall paragraph looked odd.
@@ -1096,10 +1137,12 @@ struct LicensesView: View {
             let configuration: ButtonStyleConfiguration
             @Environment(\.isFocused) private var focused
             var body: some View {
+                WithPerceptionTracking {
                 configuration.label
                     .padding(.horizontal, 28).padding(.vertical, 14)
                     .glassSurface(focused ? .regular.tint(.white.opacity(0.12)) : .identity, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .animation(.easeOut(duration: 0.15), value: focused)
+                }
             }
         }
     }
@@ -1123,6 +1166,7 @@ struct DiagnosticsView: View {
         }
     }
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 18) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top) { heading; Spacer(minLength: 24); actions }
@@ -1163,6 +1207,7 @@ struct DiagnosticsView: View {
                 do { try await Task.legacySleep(for: .seconds(2)) } catch { break }
                 if live { await refresh() }
             }
+        }
         }
     }
     private var heading: some View {
@@ -1345,6 +1390,7 @@ private struct DiagnosticRow: View {
     let compact: Bool
     @State private var hovering = false
     var body: some View {
+        WithPerceptionTracking {
         Group {
             #if os(tvOS)
             VStack(alignment: .leading, spacing: 12) {
@@ -1387,6 +1433,7 @@ private struct DiagnosticRow: View {
         #if !os(tvOS)
         .onHover { hovering = $0 }
         #endif
+        }
     }
     private var timestamp: some View {
         Text(entry.date, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).second(.twoDigits))
@@ -1414,6 +1461,7 @@ private struct DiagnosticDetail: View {
     let entry: LogEntry
     @Environment(\.dismiss) private var dismiss
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
                 Pill(text: entry.level.title, tint: entry.level.tint)
@@ -1434,6 +1482,7 @@ private struct DiagnosticDetail: View {
         .frame(width: 1100, height: 700)
         #endif
         .screenBackdrop()
+        }
     }
 }
 
@@ -1444,8 +1493,8 @@ private struct DiagnosticDetail: View {
 // and anything that needs typing or choosing opens a page of its own.
 
 struct TVSettingsView: View {
-    @Environment(Store.self) private var store
-    @Environment(Updates.self) private var updates
+    @Perception.Environment(Store.self) private var store
+    @Perception.Environment(Updates.self) private var updates
     @State private var cloudSummary = ""
     @State private var bilibiliSummary = ""
     @State private var douyinSummary = ""
@@ -1458,6 +1507,7 @@ struct TVSettingsView: View {
     @AppStorage(TMDBMatch.key) private var looksUpTMDB = true
 
     var body: some View {
+        WithPerceptionTracking {
         TVSettingsLayout {
             TVSettingsHero()
         } list: {
@@ -1482,12 +1532,12 @@ struct TVSettingsView: View {
                 if store.extrasUnlocked {
                     TVSettingsToggle(title: L10n.text("Show Danmaku"), isOn: $showsDanmaku)
                     TVSettingsToggle(title: L10n.text("Cast from the Bilibili App"), isOn: $receivesCasts)
-                        .onChange(of: receivesCasts) { _, on in
+                        .legacyOnChange(of: receivesCasts) { _, on in
                             if on { BilibiliCastController.shared.start(store) } else { BilibiliCastController.shared.stop() }
                         }
                 }
                 TVSettingsToggle(title: L10n.text("Play from Other Devices"), isOn: $receivesPlayOn)
-                    .onChange(of: receivesPlayOn) { _, on in
+                    .legacyOnChange(of: receivesPlayOn) { _, on in
                         if on { PlayOnController.shared.start(store) } else { PlayOnController.shared.stop() }
                     }
                 TVSettingsLink(title: L10n.text("Play a URL")) { TVPlayURLPage() }
@@ -1504,7 +1554,7 @@ struct TVSettingsView: View {
                 if store.extrasUnlocked { TVSettingsLink(title: L10n.text("JAR Runtime and Compatibility")) { RuntimeView() } }
                 TVSettingsLink(title: L10n.text("Diagnostic Logs")) { DiagnosticsView() }
                 TVSettingsToggle(title: L10n.text("Send Error Reports"), isOn: $sendsErrorReports)
-                    .onChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
+                    .legacyOnChange(of: sendsErrorReports) { _, on in if !on { ErrorReports.shared.discard() } }
                 TVSettingsToggle(title: L10n.text("Look Up Titles on TMDB"), isOn: $looksUpTMDB)
             }
             if updates.available.isEmpty, Updates.channel != .none { updateSection }
@@ -1518,6 +1568,7 @@ struct TVSettingsView: View {
         // Refreshed whenever Settings reappears, so a sign-in on the account page shows here.
         .onAppear { bilibiliSummary = BilibiliAccount.load().summary; douyinSummary = DouyinAccount.load().summary; cloudSummary = CloudProvider.summary() }
         .task(id: store.extrasUnlocked) { if store.extrasUnlocked { await ContributorList.shared.check() } }
+        }
     }
 
     private var playbackFooter: String {
@@ -1569,6 +1620,7 @@ struct TVSettingsLayout<Hero: View, List: View>: View {
     @ViewBuilder var hero: Hero
     @ViewBuilder var list: List
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .center, spacing: 72) {
             hero.frame(width: 560).frame(maxHeight: .infinity)
             ScrollView {
@@ -1582,6 +1634,7 @@ struct TVSettingsLayout<Hero: View, List: View>: View {
         }
         .padding(.horizontal, Layout.gutter)
         .screenBackdrop()
+        }
     }
 }
 
@@ -1591,6 +1644,7 @@ private struct TVSettingsHero: View {
         (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String).flatMap { $0.isEmpty ? nil : L10n.text("Version %@", $0) }
     }
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 34) {
             AppMark(size: 300)
             VStack(spacing: 10) {
@@ -1600,6 +1654,7 @@ private struct TVSettingsHero: View {
             }
         }
         .accessibilityElement(children: .combine)
+        }
     }
 }
 
@@ -1609,6 +1664,7 @@ struct TVSettingsSection<Content: View>: View {
     var footer: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 4) {
             if let title {
                 Text(title).font(.system(size: 25, weight: .semibold)).foregroundStyle(.secondary)
@@ -1620,6 +1676,7 @@ struct TVSettingsSection<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 28).padding(.top, 8)
             }
+        }
         }
     }
 }
@@ -1635,6 +1692,7 @@ struct TVSettingsRowLabel<Accessory: View>: View {
     var chevron = false
     @ViewBuilder var accessory: Accessory
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.system(size: 29, weight: .medium)).lineLimit(1)
@@ -1654,6 +1712,7 @@ struct TVSettingsRowLabel<Accessory: View>: View {
         }
         .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
         .contentShape(Rectangle())
+        }
     }
 }
 
@@ -1670,8 +1729,10 @@ struct TVSettingsLink<Destination: View>: View {
     var warning = false
     @ViewBuilder var destination: () -> Destination
     var body: some View {
+        WithPerceptionTracking {
         RouteLink(destination: destination) { TVSettingsRowLabel(title: title, value: value, warning: warning, chevron: true) }
             .glassRow()
+        }
     }
 }
 
@@ -1681,9 +1742,11 @@ struct TVSettingsToggle: View {
     var detail: String? = nil
     @Binding var isOn: Bool
     var body: some View {
+        WithPerceptionTracking {
         Button { isOn.toggle() } label: { TVSettingsRowLabel(title: title, detail: detail, value: L10n.text(isOn ? "On" : "Off")) }
             .glassRow()
             .accessibilityValue(L10n.text(isOn ? "On" : "Off"))
+        }
     }
 }
 
@@ -1695,10 +1758,12 @@ struct TVSettingsAction: View {
     var destructive = false
     let action: () -> Void
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             TVSettingsRowLabel(title: title, value: value, busy: busy).foregroundStyle(destructive ? Brand.rose : Color.primary)
         }
         .glassRow()
+        }
     }
 }
 
@@ -1713,6 +1778,7 @@ struct TVSettingsField: View {
     @State private var editing = false
     @State private var draft = ""
     var body: some View {
+        WithPerceptionTracking {
         Button { draft = text; editing = true } label: {
             TVSettingsRowLabel(title: title, value: text.isEmpty ? L10n.text("Not set") : text)
         }
@@ -1724,6 +1790,7 @@ struct TVSettingsField: View {
             Button(L10n.text("Done")) { text = draft.trimmingCharacters(in: .whitespacesAndNewlines) }
             Button(L10n.text("Cancel"), role: .cancel) {}
         }
+        }
     }
 }
 
@@ -1734,6 +1801,7 @@ struct TVSettingsSubpage<Content: View>: View {
     var subtitle: String? = nil
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         TVSettingsLayout {
             VStack(spacing: 30) {
                 Image(systemName: symbol).font(.system(size: 120, weight: .regular)).foregroundStyle(.secondary)
@@ -1748,16 +1816,18 @@ struct TVSettingsSubpage<Content: View>: View {
             .accessibilityElement(children: .combine)
         } list: { content }
         .screenTitle("")
+        }
     }
 }
 
 /// One subscription: switch it on or off, move it (earlier subscriptions win duplicate sources), or remove it.
 private struct TVSubscriptionPage: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let entry: SubscriptionEntry
     @State private var confirmsRemoval = false
     var body: some View {
+        WithPerceptionTracking {
         let current = store.subscriptions.first { $0.address == entry.address } ?? entry
         let index = store.subscriptions.firstIndex { $0.address == entry.address } ?? 0
         let failure = store.subscriptionErrors[entry.address]
@@ -1784,16 +1854,18 @@ private struct TVSubscriptionPage: View {
         .confirmationDialog(L10n.text("Remove"), isPresented: $confirmsRemoval) {
             Button(L10n.text("Remove"), role: .destructive) { store.removeSubscription(current); dismiss() }
         }
+        }
     }
 }
 
 /// Removing many subscriptions at once: tick them, or take all or the switched-off ones, then remove.
 private struct TVRemoveSubscriptionsPage: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var selection: Set<String> = []
     @State private var confirmsRemoval = false
     var body: some View {
+        WithPerceptionTracking {
         let chosen = store.subscriptions.filter { selection.contains($0.address) }
         let all = chosen.count == store.subscriptions.count
         let off = store.subscriptions.filter { !$0.enabled }.map(\.address)
@@ -1824,15 +1896,17 @@ private struct TVRemoveSubscriptionsPage: View {
         .confirmationDialog(L10n.text("Remove %lld Subscriptions", chosen.count), isPresented: $confirmsRemoval) {
             Button(L10n.text("Remove"), role: .destructive) { store.removeSubscriptions(Set(chosen.map(\.address))); dismiss() }
         }
+        }
     }
 }
 
 /// Adding a subscription: the address, then add it or fill in the default one.
 private struct TVAddSubscriptionPage: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     var body: some View {
-        @Bindable var store = store
+        @Perception.Bindable var store = store
+        WithPerceptionTracking {
         let empty = store.subscriptionAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         TVSettingsSubpage(symbol: "plus.rectangle.on.rectangle", title: L10n.text("Add Subscription")) {
             TVSettingsSection(title: L10n.text("Subscription"), footer: store.error ?? store.notice) {
@@ -1849,14 +1923,16 @@ private struct TVAddSubscriptionPage: View {
                 TVSettingsAction(title: L10n.text("Use a Demo URL")) { store.subscriptionAddress = Store.defaultURL }
             }
         }
+        }
     }
 }
 
 /// Playing a media address directly.
 private struct TVPlayURLPage: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var address = ""
     var body: some View {
+        WithPerceptionTracking {
         TVSettingsSubpage(symbol: "play.rectangle", title: L10n.text("Play a URL")) {
             TVSettingsSection(title: L10n.text("Playback")) {
                 TVSettingsField(title: L10n.text("HTTP / HTTPS media URL"), text: $address)
@@ -1866,6 +1942,7 @@ private struct TVPlayURLPage: View {
                 }
                 .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
+        }
         }
     }
 }
@@ -1914,6 +1991,7 @@ private struct ContributorAvatar: View {
     let person: Contributor
     let size: CGFloat
     var body: some View {
+        WithPerceptionTracking {
         AsyncImage(url: person.avatar(points: Int(size.rounded(.up)))) { image in
             image.resizable().scaledToFill()
         } placeholder: {
@@ -1922,6 +2000,7 @@ private struct ContributorAvatar: View {
         }
         .frame(width: size, height: size).clipShape(Circle())
         .accessibilityHidden(true)
+        }
     }
 }
 
@@ -1930,6 +2009,7 @@ private struct ContributorAvatar: View {
 struct ContributorsSection: View {
     private var list: ContributorList { .shared }
     var body: some View {
+        WithPerceptionTracking {
         if !list.people.isEmpty {
             TVSettingsSection(title: L10n.text("Contributors"), footer: L10n.text("Ranked by commits in the last 30 days.")) {
                 ForEach(list.people.prefix(ContributorList.shown)) { person in
@@ -1946,6 +2026,7 @@ struct ContributorsSection: View {
                 }
             }
         }
+        }
     }
 }
 #else
@@ -1954,6 +2035,7 @@ struct ContributorsSection: View {
     @Environment(\.openURL) private var openURL
     private var list: ContributorList { .shared }
     var body: some View {
+        WithPerceptionTracking {
         if !list.people.isEmpty {
             Section {
                 ForEach(list.people.prefix(ContributorList.shown)) { person in
@@ -1973,6 +2055,7 @@ struct ContributorsSection: View {
             } footer: {
                 Text(L10n.text("Ranked by commits in the last 30 days."))
             }
+        }
         }
     }
 }

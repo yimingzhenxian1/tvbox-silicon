@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
@@ -14,6 +16,7 @@ struct CloudFilesView: View {
     private var servers: [AListServer] { drives.compactMap { if case .alist(let server) = $0 { server } else { nil } } }
 
     var body: some View {
+        WithPerceptionTracking {
         FilesList {
             FilesSection(title: L10n.text("Cloud Drives"),
                          footer: signedIn.count < 2 ? L10n.text("Sign in to Quark or UC under Cloud Drive Accounts to browse their files here.") : nil) {
@@ -68,6 +71,7 @@ struct CloudFilesView: View {
                 reload()
             }
         }
+        }
     }
 
     private func reload() { drives = CloudFiles.drives() }
@@ -76,7 +80,7 @@ struct CloudFilesView: View {
 /// One folder of a drive: its folders, then its files. Videos and songs play; the others are listed
 /// so the folder reads as it does on the drive.
 struct CloudFolderView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     #if os(tvOS)
     @Environment(\.dismiss) private var dismiss
     #endif
@@ -89,6 +93,7 @@ struct CloudFolderView: View {
     @State private var password = ""
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let files, !files.isEmpty {
                 FilesList {
@@ -133,6 +138,7 @@ struct CloudFolderView: View {
             Button(L10n.text("Cancel"), role: .cancel) {}
             Button(L10n.text("Open")) { Task { await load(password: password) } }
         } message: { Text(L10n.text("Enter the password for %@.", name)) }
+        }
     }
 
     @ViewBuilder private func row(_ file: CloudFile, in files: [CloudFile]) -> some View {
@@ -208,6 +214,7 @@ struct AListServerForm: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -225,7 +232,7 @@ struct AListServerForm: View {
         }
         .background { Backdrop() }
         #else
-        NavigationStack {
+        NBNavigationStack {
             Form {
                 Section {
                     fields
@@ -250,6 +257,7 @@ struct AListServerForm: View {
         .frame(width: 520, height: 420)
         #endif
         #endif
+        }
     }
 
     private var title: String { isNew ? L10n.text("Add AList Server") : L10n.text("Edit Server") }
@@ -308,9 +316,11 @@ private struct FolderLink<Label: View>: View {
     let name: String
     @ViewBuilder var label: Label
     var body: some View {
+        WithPerceptionTracking {
         RouteLink { CloudFolderView(drive: drive, folder: folder, name: name) } label: { label }
             .glassRow()
             .accessibilityIdentifier("files.open." + name)
+        }
     }
 }
 
@@ -319,6 +329,7 @@ private struct FolderLink<Label: View>: View {
 private struct FilesList<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 4) { content }
@@ -332,6 +343,7 @@ private struct FilesList<Content: View>: View {
         #else
         List { content }.listStyle(.inset(alternatesRowBackgrounds: false))
         #endif
+        }
     }
 }
 
@@ -340,6 +352,7 @@ private struct FilesSection<Content: View>: View {
     let footer: String?
     @ViewBuilder var content: Content
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: 4) {
             if let title { Text(title).font(.system(size: 30, weight: .semibold)).foregroundStyle(.secondary).padding(.leading, 28).padding(.top, 24) }
@@ -355,6 +368,7 @@ private struct FilesSection<Content: View>: View {
             if let footer { Text(footer) }
         }
         #endif
+        }
     }
 }
 
@@ -372,6 +386,7 @@ struct FileRowLabel: View {
     private let tile: CGFloat = 32, glyph: CGFloat = 15, titleFont = Font.body, detailFont = Font.caption
     #endif
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 12) {
             Image(systemName: symbol)
                 .font(.system(size: glyph, weight: .semibold)).foregroundStyle(.white)
@@ -390,6 +405,7 @@ struct FileRowLabel: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+        }
     }
 }
 
@@ -400,6 +416,7 @@ private struct FilesMessage<Actions: View>: View {
     var message: String? = nil
     @ViewBuilder var actions: Actions
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 14) {
             Image(systemName: symbol).font(.system(size: 44, weight: .semibold)).foregroundStyle(.secondary)
             Text(title).font(.title3.weight(.semibold))
@@ -408,6 +425,7 @@ private struct FilesMessage<Actions: View>: View {
         }
         .padding(Layout.gutter)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 

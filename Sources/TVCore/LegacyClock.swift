@@ -27,5 +27,10 @@ extension Task where Success == Never, Failure == Never {
     }
 }
 extension URL {
+    public func legacyAppending(queryItems: [URLQueryItem]) -> URL {
+        guard var parts = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
+        parts.queryItems = (parts.queryItems ?? []) + queryItems
+        return parts.url ?? self
+    }
     public var legacyPercentEncodedPath: String { URLComponents(url: self, resolvingAgainstBaseURL: true)?.percentEncodedPath ?? path }
 }

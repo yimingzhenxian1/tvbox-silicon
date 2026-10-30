@@ -1,14 +1,16 @@
+import Perception
 import SwiftUI
 import TVCore
 
 struct RuntimeView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var busy = false
     @State private var report: JarReport?
     @State private var probe: JarReport?
     @State private var error: String?
     private let runtime = JarRuntime()
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("JAR Runtime"), symbol: "cpu") {
             #if os(iOS) || os(tvOS)
             SettingsGroup(title: L10n.text("On-device Plugin Runtime"),
@@ -44,6 +46,7 @@ struct RuntimeView: View {
                 HStack(spacing: 8) { ProgressView().controlSize(.small); Text(L10n.text("Working…")).foregroundStyle(.secondary); ElapsedTime() }
             }
             if let error { Label(error, systemImage: "exclamationmark.triangle.fill").font(.callout).foregroundStyle(Brand.amber) }
+        }
         }
     }
     private var probeSummary: String? {

@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 #if !os(tvOS)
 import SwiftUI
 import TVCore
@@ -22,7 +24,8 @@ struct EpisodeSkipSettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        WithPerceptionTracking {
+        NBNavigationStack {
             Form {
                 Section {
                     Toggle(L10n.text("Automatically skip intro and outro"), isOn: $enabled)
@@ -81,6 +84,7 @@ struct EpisodeSkipSettingsView: View {
         #else
         .presentationDetents([.large])
         #endif
+        }
     }
 
     private func timeField(_ title: String, text: Binding<String>, identifier: String) -> some View {

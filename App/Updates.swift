@@ -191,7 +191,7 @@ import TVCore
 /// pill buttons, and a shelf of artwork cards, one per feature.
 struct ReleaseNotesView: View {
     let sheet: Updates.Sheet
-    @Environment(Updates.self) private var updates
+    @Perception.Environment(Updates.self) private var updates
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -217,6 +217,7 @@ struct ReleaseNotesView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
             ReleaseBackdrop(animated: !reduceMotion)
@@ -229,6 +230,7 @@ struct ReleaseNotesView: View {
         #if os(macOS)
         .frame(width: 780).fixedSize(horizontal: false, vertical: true)
         #endif
+        }
     }
 
     @ViewBuilder private var layout: some View {
@@ -449,6 +451,7 @@ private struct ReleaseArt: View {
         [Color(red: 1.0, green: 0.45, blue: 0.62), Color(red: 0.45, green: 0.12, blue: 0.42)],
     ]
     var body: some View {
+        WithPerceptionTracking {
         let colors = Self.palettes[index % Self.palettes.count]
         GeometryReader { geometry in
             ZStack {
@@ -464,6 +467,7 @@ private struct ReleaseArt: View {
         .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: Self.radius, style: .continuous).strokeBorder(.white.opacity(0.12)) }
         .accessibilityHidden(true)
+        }
     }
     static var radius: CGFloat {
         #if os(tvOS)
@@ -481,6 +485,7 @@ private struct ReleaseBackdrop: View {
     private static let top = [Color(red: 0.16, green: 0.62, blue: 0.98), Color(red: 0.10, green: 0.30, blue: 0.86), Color(red: 0.20, green: 0.12, blue: 0.56)]
     private static let middle = [Color(red: 0.04, green: 0.22, blue: 0.46), Color(red: 0.06, green: 0.12, blue: 0.38), Color(red: 0.06, green: 0.05, blue: 0.22)]
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.animation(minimumInterval: 1 / 30, paused: !animated)) { context in
             let drift = Float(sin(context.date.timeIntervalSinceReferenceDate * 0.3)) * 0.12
             if #available(iOS 18, tvOS 18, *) {
@@ -500,6 +505,7 @@ private struct ReleaseBackdrop: View {
         }
         .overlay { LinearGradient(colors: [.black.opacity(0.1), .black.opacity(0.35), .black], startPoint: .top, endPoint: .bottom) }
         .accessibilityHidden(true)
+        }
     }
 }
 
@@ -536,6 +542,7 @@ private struct MacInstallActions: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
+        WithPerceptionTracking {
         switch installer.phase {
         case .idle, .ready:
             HStack(spacing: 12) {
@@ -578,6 +585,7 @@ private struct MacInstallActions: View {
             }
             .frame(minHeight: PillButtonStyle.height)
         }
+        }
     }
 
     private var notNow: some View {
@@ -606,10 +614,12 @@ private struct MacInstallActions: View {
 /// The small "New" capsule on the Settings entry while an update waits.
 struct NewBadge: View {
     var body: some View {
+        WithPerceptionTracking {
         Text(L10n.text("New"))
             .font(.caption2.weight(.bold)).foregroundStyle(Brand.onAccent)
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(Brand.accent, in: Capsule())
+        }
     }
 }
 
@@ -640,10 +650,10 @@ private struct UpdatePresentation: ViewModifier {
         let item = Binding(get: { shown ? updates.sheet : nil }, set: { updates.sheet = $0 })
         #if os(macOS)
         let presented = content.sheet(item: item) { ReleaseNotesView(sheet: $0).environment(updates) }
-            .onChange(of: active && pending && updates.presenter == nil, initial: true) { _, claim in
+            .legacyOnChange(of: active && pending && updates.presenter == nil, initial: true) { _, claim in
                 if claim { updates.presenter = id }
             }
-            .onChange(of: pending) { _, pending in if !pending { updates.presenter = nil } }
+            .legacyOnChange(of: pending) { _, pending in if !pending { updates.presenter = nil } }
         #else
         let presented = content.fullScreenCover(item: item) { ReleaseNotesView(sheet: $0).environment(updates) }
         #endif

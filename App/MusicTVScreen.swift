@@ -1,3 +1,4 @@
+import Perception
 import AVKit
 import SwiftUI
 import TVCore
@@ -8,12 +9,13 @@ import TVCore
 /// fast-forward, Play/Pause), and the transport bar carries previous and next, lyrics, channels,
 /// the queue and lyric timing. The song itself, its cover and its lyrics, fill the content overlay.
 struct MusicPlayerScreen: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     /// Lyrics show by themselves when the song has them; the transport bar turns them off.
     @State private var showsLyrics = true
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         // Read here so the transport bar is rebuilt whenever what it lists changes.
         let revision = [String(music.queue?.index ?? -1), String(music.queue?.tracks.count ?? 0), String(music.attempts.count),
@@ -21,7 +23,8 @@ struct MusicPlayerScreen: View {
             .joined(separator: "|")
         MusicNativePlayer(store: store, showsLyrics: $showsLyrics, revision: revision)
             .ignoresSafeArea()
-            .onChange(of: music.track == nil) { _, gone in if gone { dismiss() } }
+            .legacyOnChange(of: music.track == nil) { _, gone in if gone { dismiss() } }
+        }
     }
 }
 
@@ -119,10 +122,11 @@ private struct MusicNativePlayer: UIViewControllerRepresentable {
 /// What fills the screen behind AVKit's controls: the cover's colours, the source at the top, and
 /// the cover with the song, or beside its lyrics.
 private struct MusicTVContent: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let showsLyrics: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         ZStack {
             MusicTVBackdrop(artwork: music.track?.artwork)
@@ -148,6 +152,7 @@ private struct MusicTVContent: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: showsLyrics)
+        }
     }
 }
 
@@ -158,6 +163,7 @@ private struct MusicTVSong: View {
     let alignment: HorizontalAlignment
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: alignment, spacing: 0) {
             PosterImage(url: music.track?.artwork, symbol: "music.note")
                 .frame(width: art, height: art)
@@ -179,6 +185,7 @@ private struct MusicTVSong: View {
             .padding(.top, 26)
         }
         .foregroundStyle(.white)
+        }
     }
 }
 
@@ -186,6 +193,7 @@ private struct MusicTVSong: View {
 private struct MusicTVBackdrop: View {
     let artwork: URL?
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black
             PosterImage(url: artwork, symbol: "music.note")
@@ -195,6 +203,7 @@ private struct MusicTVBackdrop: View {
             LinearGradient(colors: [.black.opacity(0.05), .black.opacity(0.35)], startPoint: .top, endPoint: .bottom)
         }
         .ignoresSafeArea()
+        }
     }
 }
 #endif

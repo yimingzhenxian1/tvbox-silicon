@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
@@ -14,11 +16,13 @@ struct XunleiSignInView: View {
     @FocusState private var codeFocused: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(iOS)
         phoneForm
         #else
         panel
         #endif
+        }
     }
 
     private var title: String { L10n.text("Sign In to %@", L10n.text("Xunlei")) }
@@ -30,7 +34,7 @@ struct XunleiSignInView: View {
     #if os(iOS)
     /// A grouped form like the system's sign-in sheets: the drive's icon and the prompt, the fields, one wide button.
     private var phoneForm: some View {
-        NavigationStack {
+        NBNavigationStack {
             Form {
                 Section {
                     VStack(spacing: 10) {

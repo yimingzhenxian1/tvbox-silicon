@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 #if !os(macOS)
@@ -6,7 +7,7 @@ import UIKit
 
 /// Downloaded episodes, the download queue, and how much space they take.
 struct DownloadsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var deleting: DownloadShow?
     /// Videos or songs, once there are songs; videos first unless only songs are saved.
     @State private var kind = Kind.videos
@@ -14,6 +15,7 @@ struct DownloadsView: View {
     enum Kind: Hashable { case videos, music }
 
     var body: some View {
+        WithPerceptionTracking {
         let pending = library.items.filter(\.isPending)
         let shows = DownloadShow.group(library.items.filter { $0.status == .completed })
         Group {
@@ -31,7 +33,7 @@ struct DownloadsView: View {
         .screenBackdrop()
         .tabTitle(L10n.text("Downloads"))
         .task { await library.measure() }
-        .onChange(of: library.items.filter { $0.status == .completed }.count) { Task { await library.measure() } }
+        .legacyOnChange(of: library.items.filter { $0.status == .completed }.count) { Task { await library.measure() } }
         #if os(macOS)
         // Files may have been deleted or moved in Finder while the app was in the background.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -52,6 +54,7 @@ struct DownloadsView: View {
                 if let deleting { library.remove(deleting.items.map(\.id)) }
                 deleting = nil
             }
+        }
         }
     }
 
@@ -213,12 +216,14 @@ private struct EmptyDownloads: View {
     let available: Int64?
     let browse: () -> Void
     var body: some View {
+        WithPerceptionTracking {
         EmptyPage(symbol: "arrow.down", title: L10n.text("No Downloads"),
                   message: L10n.text("Choose Download on a video's page to save episodes for watching offline."),
                   action: L10n.text("Browse Sources"), actionSymbol: AppSection.sites.icon, perform: browse) {
             if let available {
                 Label(L10n.text("%@ available on this device", DownloadFormat.size(available)), systemImage: "internaldrive")
             }
+        }
         }
     }
 }
@@ -229,6 +234,7 @@ private struct StorageCard: View {
     /// Downloaded songs, kept apart from the episodes.
     var songs: Int64 = 0
     var body: some View {
+        WithPerceptionTracking {
         let downloads = usage.downloads + songs
         let capacity = usage.capacity ?? 0
         let free = usage.available ?? 0
@@ -279,6 +285,7 @@ private struct StorageCard: View {
         // Focusable so the remote can scroll back up to it.
         .focusable()
         #endif
+        }
     }
     private func legend(_ color: Color, _ title: String, _ bytes: Int64) -> some View {
         HStack(spacing: 6) {
@@ -296,6 +303,7 @@ private struct QueueRow: View {
     let position: Int?
     private var library: DownloadLibrary { .shared }
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 14) {
             Color.clear.aspectRatio(2.0 / 3.0, contentMode: .fit).frame(width: DownloadMetrics.thumb)
                 .overlay { PosterImage(url: item.poster, headers: item.posterHeaders) }
@@ -335,6 +343,7 @@ private struct QueueRow: View {
                 Button(L10n.text("Download Next"), systemImage: "arrow.up.to.line") { library.prioritize(item.id) }
             }
             Button(L10n.text("Cancel Download"), systemImage: "xmark", role: .destructive) { library.remove([item.id]) }
+        }
         }
     }
 
@@ -377,6 +386,7 @@ private struct ShowPanel: View {
     let delete: () -> Void
     private var library: DownloadLibrary { .shared }
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .top, spacing: 16) {
             Color.clear.aspectRatio(2.0 / 3.0, contentMode: .fit).frame(width: DownloadMetrics.showPoster)
                 .overlay { PosterImage(url: show.poster, headers: show.posterHeaders) }
@@ -401,6 +411,7 @@ private struct ShowPanel: View {
         .padding(DownloadMetrics.thumb > 60 ? 22 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
     }
 
     private func episode(_ item: DownloadItem) -> some View {
@@ -437,11 +448,13 @@ private struct ShowPanel: View {
 /// A downloaded episode's mark on a short episode chip.
 struct DownloadedBadge: View {
     var body: some View {
+        WithPerceptionTracking {
         Image(systemName: "arrow.down.circle.fill")
             .font(.system(size: DownloadMetrics.thumb > 60 ? 22 : 12, weight: .semibold))
             .foregroundStyle(Brand.onAccent, Brand.accent)
             .offset(x: 4, y: -4)
             .accessibilityLabel(L10n.text("Downloaded"))
+        }
     }
 }
 
@@ -453,6 +466,7 @@ struct DownloadState: View {
     init(status: DownloadItem.Status, fraction: Double) { self.status = status; self.fraction = fraction }
     static var size: CGFloat { DownloadMetrics.thumb > 60 ? 24 : 13 }
     var body: some View {
+        WithPerceptionTracking {
         let size = Self.size
         Group {
             switch status {
@@ -474,6 +488,7 @@ struct DownloadState: View {
         }
         .font(.system(size: size))
         .animation(.smooth, value: fraction)
+        }
     }
 }
 
@@ -490,6 +505,7 @@ struct DownloadPicker: View {
     private func source(_ episode: Episode) -> DownloadSource { DownloadSource(site: site, videoID: video.id, episode: episode) }
     private var available: [Episode] { episodes.filter { library.item(for: source($0)).map { $0.status == .failed } ?? true } }
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 14) {
                 Color.clear.aspectRatio(2.0 / 3.0, contentMode: .fit).frame(width: DownloadMetrics.thumb * 1.2)
@@ -554,6 +570,7 @@ struct DownloadPicker: View {
         .background { Backdrop() }
         #endif
         .task { await library.measure() }
+        }
     }
 
     private static var columns: [GridItem] {

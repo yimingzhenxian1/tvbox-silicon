@@ -140,12 +140,13 @@ private struct AnnouncementAlert: ViewModifier {
 
 /// Every message the website has for this device. Opening it counts as reading them, so none pops up later.
 struct MessagesView: View {
-    @Environment(Announcements.self) private var announcements
+    @Perception.Environment(Announcements.self) private var announcements
     @Environment(\.openURL) private var openURL
     /// The messages that were unread when the page opened; they keep a dot while it is on screen.
     @State private var fresh: Set<String> = []
 
     var body: some View {
+        WithPerceptionTracking {
         let messages = announcements.all
         Group {
             if messages.isEmpty {
@@ -168,6 +169,7 @@ struct MessagesView: View {
         .screenTitle(L10n.text("Messages"))
         // Read at once, so a waiting message doesn't pop up over the page, and again after the check.
         .task { read(); await announcements.check(); read() }
+        }
     }
 
     private func read() {

@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import AVFoundation
 import CoreText
@@ -14,6 +15,7 @@ struct DanmakuOverlay: View {
     @Environment(\.displayScale) private var scale
 
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.animation) { timeline in
             Canvas { context, size in
                 // Reading the timeline's date makes every tick a new drawing; the clock itself is the player's.
@@ -30,6 +32,7 @@ struct DanmakuOverlay: View {
         .allowsHitTesting(false)
         .accessibilityHidden(true)
         .task(id: "\(revision):\(comments.count)") { engine.load(comments) }
+        }
     }
 }
 
@@ -191,6 +194,7 @@ struct DanmakuListView: View {
 
     #if os(tvOS)
     var body: some View {
+        WithPerceptionTracking {
         ScrollViewReader { proxy in
             // Not a List: tvOS puts a square focus background behind list cells.
             ScrollView {
@@ -208,6 +212,7 @@ struct DanmakuListView: View {
                 if now.isFinite, let target = comments.firstIndex(where: { $0.time >= now - 1 }) { proxy.scrollTo(target, anchor: .top) }
             }
         }
+        }
     }
 
     private func tvRow(_ comment: Danmaku) -> some View {
@@ -221,6 +226,7 @@ struct DanmakuListView: View {
     }
     #else
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 0) {
             header.padding(.horizontal, 20).padding(.top, 22)
             DanmakuDensity(bins: density, progress: duration > 0 ? now / duration : 0) { fraction in
@@ -240,6 +246,7 @@ struct DanmakuListView: View {
                 if time.isFinite { now = time }
                 try? await Task.legacySleep(for: .milliseconds(500))
             }
+        }
         }
     }
 
@@ -332,10 +339,10 @@ struct DanmakuListView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .animation(.smooth(duration: 0.3), value: following)
+            .animation(.easeInOut(duration: 0.3), value: following)
             .onAppear { follow(proxy, animated: false) }
-            .onChange(of: now) { _, _ in if following { follow(proxy, animated: true) } }
-            .onChange(of: query) { _, text in if text.isEmpty { follow(proxy, animated: false) } }
+            .legacyOnChange(of: now) { _, _ in if following { follow(proxy, animated: true) } }
+            .legacyOnChange(of: query) { _, text in if text.isEmpty { follow(proxy, animated: false) } }
         }
     }
 
@@ -370,7 +377,7 @@ struct DanmakuListView: View {
         let target = min(comments.count - 1, nowIndex)
         guard target != anchor || !animated else { return }
         anchor = target
-        if animated { withAnimation(.smooth(duration: 0.4)) { proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.4)) } }
+        if animated { withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.4)) } }
         else { proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.4)) }
     }
 
@@ -416,6 +423,7 @@ private struct DanmakuDensity: View {
     let progress: Double
     let seek: (Double) -> Void
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { geometry in
             let width = geometry.size.width, height = geometry.size.height
             HStack(alignment: .bottom, spacing: 2) {
@@ -439,6 +447,7 @@ private struct DanmakuDensity: View {
         .accessibilityElement()
         .accessibilityLabel(L10n.text("Danmaku"))
         .accessibilityValue("\(Int(progress * 100))%")
+        }
     }
 }
 
@@ -446,6 +455,7 @@ private struct DanmakuDensity: View {
 private struct DanmakuNowLine: View {
     let time: Double
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 10) {
             Text(DanmakuListView.clock(time))
                 .font(.caption.monospacedDigit().weight(.bold))
@@ -455,6 +465,7 @@ private struct DanmakuNowLine: View {
             Capsule().fill(Brand.cyan).frame(height: 2)
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
+        }
     }
 }
 

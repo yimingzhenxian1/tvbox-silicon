@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
@@ -16,7 +18,7 @@ private struct SearchPoster: Identifiable {
 }
 
 struct GlobalSearchView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @FocusState private var inputFocused: Bool
     @State private var showFailures = false
     /// The sources being searched right now, under the summary; folded away unless asked for.
@@ -57,7 +59,8 @@ struct GlobalSearchView: View {
     }
 
     var body: some View {
-        @Bindable var model = model
+        @Perception.Bindable var model = model
+        WithPerceptionTracking {
         #if os(tvOS)
         searchResults
             .searchable(text: $model.draft, prompt: Text(L10n.text("Search videos")))
@@ -90,7 +93,7 @@ struct GlobalSearchView: View {
             .catalogSearchable(text: $model.draft, prompt: L10n.text("Search videos"))
             .searchFieldFocused($inputFocused)
             .onSubmit(of: .search) { if let config = store.subscription { submit(config) } }
-            .onChange(of: model.draft) { _, draft in if draft.isEmpty && !model.keyword.isEmpty { model.reset() } }
+            .legacyOnChange(of: model.draft) { _, draft in if draft.isEmpty && !model.keyword.isEmpty { model.reset() } }
             #if os(iOS)
             .scrollDismissesKeyboard(.interactively)
             #endif
@@ -113,6 +116,7 @@ struct GlobalSearchView: View {
             }
             #endif
         #endif
+        }
     }
 
     /// The search field is the system's, so the bar below it waits for a search.
@@ -160,7 +164,7 @@ struct GlobalSearchView: View {
                                         endVisible = visible
                                         if visible { model.loadMore(model.selectedSource, config: config) }
                                     }
-                                    .onChange(of: model.loadingMore) { _, loading in
+                                    .legacyOnChange(of: model.loadingMore) { _, loading in
                                         if !loading, endVisible { model.loadMore(model.selectedSource, config: config) }
                                     }
                             }
@@ -196,7 +200,7 @@ struct GlobalSearchView: View {
     }
 
     private func searchHeader(_ config: Subscription) -> some View {
-        @Bindable var model = model
+        @Perception.Bindable var model = model
         return VStack(alignment: .leading, spacing: 14) {
             if !model.keyword.isEmpty {
                 ViewThatFits(in: .horizontal) {
@@ -294,7 +298,7 @@ struct GlobalSearchView: View {
         if model.busy {
             Button { model.stop() } label: { searchActionLabel(L10n.text("Stop"), symbol: "stop.fill") }.searchAction()
             let title = L10n.text(showsActivity ? "Hide Details" : "Show Details")
-            Button { withAnimation(.smooth(duration: 0.25)) { showsActivity.toggle() } } label: {
+            Button { withAnimation(.easeInOut(duration: 0.25)) { showsActivity.toggle() } } label: {
                 Image(systemName: "chevron.down").font(.footnote.weight(.semibold))
                     .rotationEffect(.degrees(showsActivity ? 180 : 0))
             }
@@ -404,7 +408,7 @@ struct GlobalSearchView: View {
     }
 
     private var failureDetails: some View {
-        NavigationStack {
+        NBNavigationStack {
             List {
                 ForEach(model.failures) { result in
                     VStack(alignment: .leading, spacing: 6) {
@@ -509,6 +513,7 @@ private struct SearchActivityList: View {
     /// The on-device plugin worker runs at most this many searches at once.
     private let limit = 5
     var body: some View {
+        WithPerceptionTracking {
         TimelineView(.periodic(from: .now, by: 0.5)) { timeline in
             let active = Array(PluginPreparation.active(origin: origin).prefix(limit))
             VStack(alignment: .leading, spacing: 10) {
@@ -547,7 +552,8 @@ private struct SearchActivityList: View {
             }
             .font(.subheadline)
             .accessibilityElement(children: .combine)
-            .animation(.smooth(duration: 0.25), value: active.map(\.id))
+            .animation(.easeInOut(duration: 0.25), value: active.map(\.id))
+        }
         }
     }
     /// While searching, the plugin's "loading" stage is the search itself.
@@ -595,7 +601,7 @@ private func uniqueVideos(_ videos: [Video]) -> [Video] {
 }
 
 struct RecommendationsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.openRoute) private var openRoute
     let config: Subscription
     var fixedSite: Site? = nil
@@ -640,7 +646,7 @@ struct RecommendationsView: View {
                 .accessibilityLabel(L10n.text("Recommendation Source"))
                 .contextMenu { sourceActions(site) }
                 .sheet(isPresented: $choosingSource, onDismiss: { afterPicker?(); afterPicker = nil }) {
-                    NavigationStack {
+                    NBNavigationStack {
                         ScrollViewReader { proxy in
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 4) {
@@ -713,6 +719,7 @@ struct RecommendationsView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 16) {
             #if os(tvOS)
             recommendationControls.tvFocusSection()
@@ -798,12 +805,13 @@ struct RecommendationsView: View {
                                client: CatalogClient(site: loadedSite, origin: config.origin, jarURL: config.spiderURL))
         }
         .onDisappear { browser.cancel() }
-        .navigationDestination(item: $openedSource) { route in
+        .nbNavigationDestination(item: $openedSource) { route in
             #if os(macOS)
             route.build().musicBar()
             #else
             route.build()
             #endif
+        }
         }
     }
 
@@ -895,6 +903,7 @@ struct SourceStrip: View {
     var actions: ((String) -> AnyView)? = nil
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollStrip(scrollTo: selection, leftLabel: "Scroll sources left", rightLabel: "Scroll sources right") {
             HStack(spacing: 6) {
                 ForEach(items) { item in
@@ -907,6 +916,7 @@ struct SourceStrip: View {
             }
             .padding(.vertical, 4)
             .scrollTargetLayout()
+        }
         }
     }
 }
@@ -953,6 +963,7 @@ struct ScrollStrip<Content: View>: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollViewReader { proxy in
             HStack(spacing: 8) {
                 measured(
@@ -1002,6 +1013,7 @@ struct ScrollStrip<Content: View>: View {
                 #endif
             }
         }
+        }
     }
 
     private func update(_ metrics: Metrics) {
@@ -1049,7 +1061,7 @@ struct ScrollStrip<Content: View>: View {
             .onEnded { value in
                 let origin = tracking.dragOrigin ?? tracking.metrics.offset
                 tracking.dragOrigin = nil
-                withAnimation(.smooth(duration: 0.45)) {
+                withAnimation(.easeInOut(duration: 0.45)) {
                     position.scrollTo(x: tracking.clamp(origin - value.predictedEndTranslation.width))
                 }
                 let drag = tracking.drag
@@ -1065,7 +1077,7 @@ struct ScrollStrip<Content: View>: View {
         let label = L10n.text(forward ? rightLabel : leftLabel)
         return Button {
             let step = max(1, tracking.metrics.viewport * 0.8)
-            withAnimation(.smooth(duration: 0.3)) {
+            withAnimation(.easeInOut(duration: 0.3)) {
                 position.scrollTo(x: tracking.clamp(tracking.metrics.offset + (forward ? step : -step)))
             }
         } label: {
@@ -1096,6 +1108,7 @@ private struct SourceChip: View {
     @Environment(\.stripDrag) private var drag
 
     var body: some View {
+        WithPerceptionTracking {
         let label = SourceLabel(name)
         // The chip under the pointer receives the mouse-up that ends a drag.
         Button { if drag?.active != true { action() } } label: {
@@ -1114,11 +1127,12 @@ private struct SourceChip: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .animation(.smooth(duration: 0.15), value: hovering)
-        .animation(.smooth(duration: 0.2), value: selected)
+        .animation(.easeInOut(duration: 0.15), value: hovering)
+        .animation(.easeInOut(duration: 0.2), value: selected)
         .accessibilityLabel(label.title)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
         .help(name)
+        }
     }
 
     private var fill: Color {

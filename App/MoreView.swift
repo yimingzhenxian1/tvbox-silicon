@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 #if os(iOS)
 import SwiftUI
 import TVCore
@@ -70,6 +72,7 @@ struct SectionGlyph: View {
     let section: AppSection
     var size: CGFloat = 36
     var body: some View {
+        WithPerceptionTracking {
         let tint = section.glyphTint
         Image(systemName: section.icon)
             .font(.system(size: size * 0.46, weight: .semibold))
@@ -78,6 +81,7 @@ struct SectionGlyph: View {
             .background(LinearGradient(colors: [tint.blend(with: .white, by: 0.12), tint.blend(with: .black, by: 0.2)], startPoint: .top, endPoint: .bottom),
                         in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
             .accessibilityHidden(true)
+        }
     }
 }
 
@@ -85,6 +89,7 @@ struct SectionGlyph: View {
 struct TabBarPreview: View {
     let bar: [AppSection]
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 0) {
             ForEach(bar + [.more]) { item in
                 VStack(spacing: 3) {
@@ -98,16 +103,17 @@ struct TabBarPreview: View {
         }
         .padding(.horizontal, 6).padding(.vertical, 8)
         .glassSurface(.regular, in: Capsule())
-        .animation(.smooth(duration: 0.3), value: bar)
+        .animation(.easeInOut(duration: 0.3), value: bar)
         .accessibilityElement(children: .combine)
+        }
     }
 }
 
 /// The phone's More tab: the sections that are not in the tab bar as tiles, and the tab bar editor.
 struct MoreView: View {
-    @Environment(Store.self) private var store
-    @Environment(Updates.self) private var updates
-    @Environment(Announcements.self) private var announcements
+    @Perception.Environment(Store.self) private var store
+    @Perception.Environment(Updates.self) private var updates
+    @Perception.Environment(Announcements.self) private var announcements
     @AppStorage(PhoneTabs.storageKey) private var storedTabs = ""
     @State private var editing = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -115,6 +121,7 @@ struct MoreView: View {
     private var slots: Int { PhoneTabs.slots(horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
 
     var body: some View {
+        WithPerceptionTracking {
         let tabs = PhoneTabs(stored: storedTabs).arranged(slots: slots, hiding: store.hiddenSections)
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
@@ -145,6 +152,7 @@ struct MoreView: View {
         // `-qaEditTabs 1` opens the editor for screenshots.
         .onAppear { if UserDefaults.standard.bool(forKey: "qaEditTabs") { editing = true } }
         #endif
+        }
     }
 
     private func badge(_ section: AppSection) -> Bool {
@@ -207,7 +215,8 @@ private struct MoreTile: View {
         (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String).map { L10n.text("Version %@", $0) }
     }
     var body: some View {
-        NavigationLink(value: section) {
+        WithPerceptionTracking {
+        NBNavigationLink(value: section) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 8) {
                     SectionGlyph(section: section, size: 38)
@@ -241,6 +250,7 @@ private struct MoreTile: View {
             .contentShape(.rect(cornerRadius: 22))
         }
         .buttonStyle(LiftButtonStyle())
+        }
     }
 }
 
@@ -274,7 +284,8 @@ private struct TabBarEditor: View {
     private var standard: PhoneTabs { PhoneTabs.standard.arranged(slots: slots) }
 
     var body: some View {
-        NavigationStack {
+        WithPerceptionTracking {
+        NBNavigationStack {
             List {
                 Section {
                     TabBarPreview(bar: tabs.bar)
@@ -321,10 +332,11 @@ private struct TabBarEditor: View {
                     Button(L10n.text("Done")) { save(tabs); dismiss() }.fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .bottomBar) {
-                    Button(L10n.text("Reset")) { withAnimation(.smooth) { rows = Row.rows(standard) } }
+                    Button(L10n.text("Reset")) { withAnimation(.easeInOut) { rows = Row.rows(standard) } }
                         .disabled(tabs == standard)
                 }
             }
+        }
         }
     }
 
@@ -339,7 +351,7 @@ private struct TabBarEditor: View {
         next.move(fromOffsets: source, toOffset: destination)
         let tabs = Row.tabs(next, slots: slots)
         guard !tabs.bar.isEmpty else { return } // The tab bar keeps at least one section besides More.
-        withAnimation(.smooth) { rows = Row.rows(tabs) }
+        withAnimation(.easeInOut) { rows = Row.rows(tabs) }
     }
 }
 #endif

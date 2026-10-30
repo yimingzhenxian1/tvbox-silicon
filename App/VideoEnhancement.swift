@@ -152,7 +152,7 @@ private protocol EnhancementEngine: AnyObject, Sendable {
         #if DEBUG
         next.mark = defaults.bool(forKey: "qaEnhanceHUD")
         #endif
-        let current = (next.upscale || next.smooth) ? player.currentItem : nil
+        let current = (next.upscale || next.easeInOut) ? player.currentItem : nil
         if current !== item || (current != nil && output == nil) {
             if let item, let output { item.remove(output) }
             if let jumpObserver { NotificationCenter.default.removeObserver(jumpObserver) }
@@ -285,11 +285,13 @@ struct EnhancedVideoSurface: View {
     /// watch page it keeps to its frame, so the enhanced picture must too.
     var bleeds = true
     var body: some View {
+        WithPerceptionTracking {
         if VideoEnhancement.canUpscale || VideoEnhancement.canSmooth {
             // The same area as AVKit's own picture: inside the safe area (under the Mac's title bar) the fitted
             // picture came out smaller than AVKit's, and under the status bar above a watch page's player it came out
             // taller and higher; either way AVKit's picture showed around its edges.
             Host(enhancer: enhancer, fills: fills).ignoresSafeArea(edges: bleeds ? .all : []).allowsHitTesting(false).accessibilityHidden(true)
+        }
         }
     }
 

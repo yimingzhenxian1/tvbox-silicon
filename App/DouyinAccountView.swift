@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 #if !os(tvOS)
@@ -19,6 +21,7 @@ struct DouyinAccountView: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         SettingsPage(title: L10n.text("Douyin Account"), symbol: "music.note") {
             if account.signedIn {
                 SettingsGroup(footer: L10n.text("Douyin Live search uses this sign-in. It stays on this device.")) {
@@ -57,6 +60,7 @@ struct DouyinAccountView: View {
         #if !os(tvOS)
         .sheet(isPresented: $signingIn) { DouyinLoginView { account = $0 } }
         #endif
+        }
     }
 
     private func run() async {
@@ -146,6 +150,7 @@ extension DouyinAccount {
 /// Atop Douyin Live while signed out: signing in adds search.
 struct DouyinSignInBanner: View {
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 16) {
             LivePlatformMark(platform: .douyin, size: 44)
             VStack(alignment: .leading, spacing: 4) {
@@ -158,6 +163,7 @@ struct DouyinSignInBanner: View {
         }
         .padding(16)
         .contentPanel()
+        }
     }
 }
 
@@ -180,6 +186,7 @@ struct DouyinLoginView: View {
     static let page = URL(string: "https://www.douyin.com/")!
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 LivePlatformMark(platform: .douyin, size: 28)
@@ -222,6 +229,7 @@ struct DouyinLoginView: View {
                 }
                 try? await Task.legacySleep(for: .seconds(1))
             }
+        }
         }
     }
 }
@@ -279,7 +287,8 @@ struct DouyinHandoffView: View {
     @State private var error: String?
 
     var body: some View {
-        NavigationStack {
+        WithPerceptionTracking {
+        NBNavigationStack {
             VStack(spacing: 18) {
                 Image(systemName: sent ? "checkmark.circle.fill" : "appletv.fill")
                     .font(.system(size: 56)).foregroundStyle(sent ? Color.green : Color.secondary)
@@ -304,6 +313,7 @@ struct DouyinHandoffView: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button(L10n.text("Cancel")) { dismiss() } } }
         }
         .sheet(isPresented: $signingIn) { DouyinLoginView { account = $0 } }
+        }
     }
 
     private var message: String {

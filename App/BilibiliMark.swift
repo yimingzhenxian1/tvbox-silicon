@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 
 /// The built-in Bilibili source's icon: Bilibili's TV logo, white on Bilibili blue like its app icon.
@@ -8,6 +9,7 @@ struct BilibiliMark: View {
     var size: CGFloat = 44
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         let size = size >= 44 ? max(size, 56) : size
         #endif
@@ -20,6 +22,7 @@ struct BilibiliMark: View {
             .frame(width: size, height: size)
             .background(Self.blue, in: RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
             .accessibilityHidden(true)
+        }
     }
 }
 
@@ -29,6 +32,7 @@ struct BilibiliGlyph: View {
     var size: CGFloat = 15
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         let size = max(size, 28)
         #endif
@@ -38,5 +42,6 @@ struct BilibiliGlyph: View {
             .aspectRatio(contentMode: .fit)
             .frame(width: size, height: size)
             .accessibilityHidden(true)
+        }
     }
 }

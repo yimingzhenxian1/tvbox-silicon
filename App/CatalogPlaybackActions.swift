@@ -1,3 +1,4 @@
+import Perception
 #if !os(tvOS)
 import SwiftUI
 import TVCore
@@ -6,11 +7,12 @@ import TVCore
 struct CatalogPlaybackActions: View {
     let channel: Channel
     let session: PlaybackSession
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var showsSkip = false
     @State private var showsDanmaku = false
 
     var body: some View {
+        WithPerceptionTracking {
         if channel.historyContext != nil {
             Menu {
                 if let catalog = store.catalog(for: channel) {
@@ -65,6 +67,7 @@ struct CatalogPlaybackActions: View {
             .sheet(isPresented: $showsDanmaku) {
                 CatalogDanmakuSettingsView(model: session.catalogDanmaku, channelName: channel.name)
             }
+        }
         }
     }
 }

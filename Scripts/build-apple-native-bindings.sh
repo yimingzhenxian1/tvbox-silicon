@@ -3,8 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"; WORK="$ROOT/build/apple-runtime"; TARGET="${1:-ios-simulator}"
 case "$TARGET" in
- ios) SDK=iphoneos; SYSTEM=iOS; TRIPLE=arm64-apple-ios17.0 ;;
- ios-simulator) SDK=iphonesimulator; SYSTEM=iOS; TRIPLE=arm64-apple-ios17.0-simulator ;;
+ ios) SDK=iphoneos; SYSTEM=iOS; TRIPLE=arm64-apple-ios15.6 ;;
+ ios-simulator) SDK=iphonesimulator; SYSTEM=iOS; TRIPLE=arm64-apple-ios15.6-simulator ;;
  tvos) SDK=appletvos; SYSTEM=tvOS; TRIPLE=arm64-apple-tvos17.0 ;;
  tvos-simulator) SDK=appletvsimulator; SYSTEM=tvOS; TRIPLE=arm64-apple-tvos17.0-simulator ;;
  *) exit 2 ;;
@@ -28,7 +28,7 @@ sed -i '' 's/SET CMP0048 OLD/SET CMP0048 NEW/' "$WORK/capstone/CMakeLists.txt"
 # JNA resolves the assembler's public C API from the executable. Keep these
 # symbols externally visible even though the archive itself is static.
 sed -i '' 's/    KEYSTONE_STATIC/    TVBOX_STATIC_KEYSTONE/' "$WORK/keystone/llvm/keystone/CMakeLists.txt"
-COMMON=(-DCMAKE_SYSTEM_NAME="$SYSTEM" -DCMAKE_OSX_SYSROOT="$SDK" -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+COMMON=(-DCMAKE_SYSTEM_NAME="$SYSTEM" -DCMAKE_OSX_SYSROOT="$SDK" -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
 cmake -S "$WORK/capstone" -B "$WORK/capstone-$TARGET" "${COMMON[@]}" -DCAPSTONE_BUILD_SHARED=OFF -DCAPSTONE_BUILD_TESTS=OFF -DCAPSTONE_BUILD_CSTOOL=OFF
 cmake --build "$WORK/capstone-$TARGET" -j "${JOBS:-4}"
 cmake -S "$WORK/keystone" -B "$WORK/keystone-$TARGET" "${COMMON[@]}" -DBUILD_SHARED_LIBS=OFF -DBUILD_LIBS_ONLY=ON -DLLVM_TARGETS_TO_BUILD=AArch64 -DPYTHON_EXECUTABLE=/usr/bin/python3

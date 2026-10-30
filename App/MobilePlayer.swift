@@ -30,7 +30,7 @@ struct MobilePlayerView: View {
     /// On a watch page: Full Screen, or back to the page.
     var toggleFullScreen: (() -> Void)? = nil
 
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var pip = PictureInPicture()
@@ -68,6 +68,7 @@ struct MobilePlayerView: View {
     @State private var brightnessBefore: CGFloat?
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             PlayerLayerView(player: session.player, fills: fillsScreen, pip: pip).playerBleed(!inline)
             // The enhanced picture covers the layer's own, under everything else.
@@ -129,12 +130,12 @@ struct MobilePlayerView: View {
             if let brightnessBefore { screen?.brightness = brightnessBefore }
         }
         // Played here again (the Lock Screen, say): the other device no longer has it to itself.
-        .onChange(of: session.paused) { _, paused in if !paused { playingOn = nil } }
-        .onChange(of: nowPlayingState, initial: true) { nowPlaying.update(title: channel.name, session: session) }
-        .onChange(of: nowPlayingArtwork, initial: true) { _, artwork in nowPlaying.show(artwork, session: session) }
+        .legacyOnChange(of: session.paused) { _, paused in if !paused { playingOn = nil } }
+        .legacyOnChange(of: nowPlayingState, initial: true) { nowPlaying.update(title: channel.name, session: session) }
+        .legacyOnChange(of: nowPlayingArtwork, initial: true) { _, artwork in nowPlaying.show(artwork, session: session) }
         // Pausing ends the faster speed in the session; another episode or quality plays at the chosen one.
-        .onChange(of: session.boost == nil) { _, ended in if ended { boost = nil } }
-        .onChange(of: clock.item) { endBoost() }
+        .legacyOnChange(of: session.boost == nil) { _, ended in if ended { boost = nil } }
+        .legacyOnChange(of: clock.item) { endBoost() }
         .sensoryFeedback(trigger: boost) { old, new in
             guard let new else { return nil }
             guard let old else { return .impact(weight: .light) }
@@ -144,6 +145,7 @@ struct MobilePlayerView: View {
         .sheet(isPresented: $showsDanmakuList) {
             DanmakuListView(player: session.player, comments: session.danmaku) { showsDanmakuList = false }
                 .danmakuListPresentation()
+        }
         }
     }
 
@@ -680,6 +682,7 @@ struct WatchCoverBackdrop: View {
     /// What the wait has to say, by how long it has run (see `WaitSpinner`).
     var status: (@MainActor (TimeInterval) -> PlaybackWait)? = nil
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Color.black
             PosterImage(url: poster, headers: headers)
@@ -690,6 +693,7 @@ struct WatchCoverBackdrop: View {
             if loading { WaitSpinner(status: status) }
         }
         .clipped()
+        }
     }
 }
 
@@ -699,6 +703,7 @@ struct WaitSpinner: View {
     var status: (@MainActor (TimeInterval) -> PlaybackWait)?
     @State private var started = Date()
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             ProgressView().controlSize(.large).tint(.white)
             if let status {
@@ -714,12 +719,13 @@ struct WaitSpinner: View {
                     }
                     .padding(.horizontal, 24).padding(.bottom, 12)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .animation(.smooth(duration: 0.45), value: speaks)
+                    .animation(.easeInOut(duration: 0.45), value: speaks)
                 }
             }
         }
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
+        }
     }
 }
 
@@ -785,6 +791,7 @@ private struct SeekBar<Accessory: View>: View {
     @State private var width: CGFloat = 0
 
     var body: some View {
+        WithPerceptionTracking {
         // Every display frame while it plays, as AVKit's bar does; paused, held or hidden, only when the clock changes.
         let follows = moving && clock.scrubbing == nil
         TimelineView(.animation(paused: !follows)) { _ in
@@ -797,6 +804,7 @@ private struct SeekBar<Accessory: View>: View {
         }
         .animation(.easeOut(duration: 0.15), value: drag == nil)
         .sensoryFeedback(.selection, trigger: fineness)
+        }
     }
 
     private func bar(_ position: Double) -> some View {

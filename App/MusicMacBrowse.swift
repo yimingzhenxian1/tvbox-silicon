@@ -1,3 +1,4 @@
+import Perception
 #if os(macOS) || os(tvOS)
 import SwiftUI
 import TVCore
@@ -11,6 +12,7 @@ struct MusicTopResults: View {
     let play: (MusicTrack) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         let albums = search.collections.filter { $0.kind == .album }
         let playlists = search.collections.filter { $0.kind == .playlist }
         VStack(alignment: .leading, spacing: MusicBrowseMetrics.sectionSpacing) {
@@ -29,6 +31,7 @@ struct MusicTopResults: View {
             if search.busy { ProgressView().frame(maxWidth: .infinity) }
         }
         .padding(.top, 4)
+        }
     }
 
     private func collections(_ title: String, _ items: [MusicCollection]) -> some View {
@@ -69,6 +72,7 @@ private struct MusicSectionLink<Destination: View>: View {
     let title: String
     @ViewBuilder let destination: () -> Destination
     var body: some View {
+        WithPerceptionTracking {
         RouteLink(destination: destination) {
             HStack(spacing: 5) {
                 Text(title).font(.title3.weight(.bold)).foregroundStyle(.primary)
@@ -78,6 +82,7 @@ private struct MusicSectionLink<Destination: View>: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(.isHeader)
+        }
     }
 }
 #endif
@@ -89,6 +94,7 @@ struct MusicCollectionTile: View {
     @State private var hovering = false
 
     var body: some View {
+        WithPerceptionTracking {
         let link = RouteLink { MusicCollectionView(collection: collection) } label: {
             VStack(alignment: .leading, spacing: 7) {
                 MusicArtwork(url: collection.artwork, size: size, symbol: collection.kind == .album ? "square.stack" : "music.note.list")
@@ -109,6 +115,7 @@ struct MusicCollectionTile: View {
             .onHover { hovering = $0 }
             .animation(.easeOut(duration: 0.15), value: hovering)
         #endif
+        }
     }
 
     #if os(tvOS)
@@ -124,6 +131,7 @@ private struct MusicSongGrid: View {
     let play: (MusicTrack) -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         let rows = MusicBrowseMetrics.songRows
         let columns = stride(from: 0, to: tracks.count, by: rows).map { Array(tracks[$0..<min($0 + rows, tracks.count)]) }
         #if os(macOS)
@@ -144,6 +152,7 @@ private struct MusicSongGrid: View {
         }
         .tvFocusSection()
         #endif
+        }
     }
 
     private func column(_ tracks: [MusicTrack]) -> some View {
@@ -157,13 +166,14 @@ private struct MusicSongGrid: View {
 
 /// A song in the grid: cover, title and artist; on the Mac its menu too, on Apple TV a long press.
 private struct MusicSongCell: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let track: MusicTrack
     var divider = true
     let action: () -> Void
     @State private var hovering = false
 
     var body: some View {
+        WithPerceptionTracking {
         let current = store.music.track?.id == track.id
         #if os(tvOS)
         Button(action: action) {
@@ -197,6 +207,7 @@ private struct MusicSongCell: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(.default, action)
         #endif
+        }
     }
 
     private func labels(current: Bool, title: CGFloat, artist: CGFloat) -> some View {
@@ -213,6 +224,7 @@ private struct MusicSongCell: View {
 private struct MusicPlayingBadge: View {
     let current: Bool
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             RoundedRectangle(cornerRadius: 5, style: .continuous).fill(.black.opacity(0.42))
             Image(systemName: current ? "waveform" : "play.fill")
@@ -220,15 +232,17 @@ private struct MusicPlayingBadge: View {
                 .symbolEffect(.variableColor.iterative, isActive: current)
         }
         .accessibilityHidden(true)
+        }
     }
 }
 
 #if os(macOS)
 /// A song's "…": play it next, or after everything queued.
 struct MusicTrackMenu: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let tracks: [MusicTrack]
     var body: some View {
+        WithPerceptionTracking {
         Menu {
             Button { store.music.playNext(tracks) } label: { Label(L10n.text("Play Next"), systemImage: "text.line.first.and.arrowtriangle.forward") }
             Button { store.music.addToUpNext(tracks) } label: { Label(L10n.text("Add to Up Next"), systemImage: "text.line.last.and.arrowtriangle.forward") }
@@ -241,6 +255,7 @@ struct MusicTrackMenu: View {
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel(L10n.text("More"))
+        }
     }
 }
 
@@ -253,6 +268,7 @@ struct MusicSongTable: View {
     @State private var width: CGFloat = 800
 
     var body: some View {
+        WithPerceptionTracking {
         let artist = max(110, width * 0.2), album = max(120, width * 0.24)
         LazyVStack(spacing: 0) {
             if !numbered {
@@ -272,11 +288,12 @@ struct MusicSongTable: View {
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        }
     }
 }
 
 private struct MusicSongTableRow: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let index: Int
     let track: MusicTrack
     let numbered: Bool
@@ -286,6 +303,7 @@ private struct MusicSongTableRow: View {
     @State private var hovering = false
 
     var body: some View {
+        WithPerceptionTracking {
         let current = store.music.track?.id == track.id
         HStack(spacing: 12) {
             if numbered {
@@ -324,15 +342,17 @@ private struct MusicSongTableRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
         .accessibilityAction(.default, action)
+        }
     }
 }
 
 /// Every song a search found, as a table.
 struct MusicSongsPage: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let title: String
     let tracks: [MusicTrack]
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text(title).font(.largeTitle.weight(.bold))
@@ -343,6 +363,7 @@ struct MusicSongsPage: View {
         .screenBackdrop()
         .navigationTitle(title)
         .toolbar(removing: .title)
+        }
     }
 }
 
@@ -351,6 +372,7 @@ struct MusicCollectionsPage: View {
     let title: String
     let collections: [MusicCollection]
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text(title).font(.largeTitle.weight(.bold))
@@ -364,17 +386,19 @@ struct MusicCollectionsPage: View {
         .screenBackdrop()
         .navigationTitle(title)
         .toolbar(removing: .title)
+        }
     }
 }
 
 /// An album's or playlist's head: the cover large, the title, who made it, what it is, then Shuffle,
 /// Play and Add to Up Next.
 struct MusicCollectionHeader: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let collection: MusicCollection
     let tracks: [MusicTrack]
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(alignment: .bottom, spacing: 28) {
             MusicArtwork(url: collection.artwork, size: 236, symbol: collection.kind == .album ? "square.stack" : "music.note.list")
                 .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
@@ -405,6 +429,7 @@ struct MusicCollectionHeader: View {
             }
             .frame(height: 236, alignment: .topLeading)
             .padding(.vertical, 6)
+        }
         }
     }
 

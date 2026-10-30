@@ -1,3 +1,4 @@
+import Perception
 #if DEBUG
 import AVFoundation
 import SwiftUI
@@ -304,7 +305,9 @@ private struct QASheet<Content: View>: View {
     @ViewBuilder let content: () -> Content
     @State private var shown = false
     var body: some View {
+        WithPerceptionTracking {
         Color.clear.task { shown = true }.sheet(isPresented: $shown) { content() }
+        }
     }
 }
 
@@ -483,6 +486,7 @@ private struct QADanmakuList: View {
         return list.sorted { $0.time < $1.time }
     }()
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         // A cover so focus starts on the first row instead of the tab bar.
         Color.clear.fullScreenCover(isPresented: .constant(true)) { DanmakuListView(player: player, comments: comments) }
@@ -492,6 +496,7 @@ private struct QADanmakuList: View {
             .ignoresSafeArea()
             .sheet(isPresented: .constant(true)) { DanmakuListView(player: player, comments: comments).danmakuListPresentation() }
         #endif
+        }
     }
 }
 #endif

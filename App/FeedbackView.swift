@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -13,7 +14,7 @@ enum Support {
 /// was sent from this device with how each issue is doing and the developer's replies, asked from the
 /// server each time the page opens or sends.
 struct FeedbackView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var kind = Feedback.Kind.bug
     @State private var message = ""
     @State private var context = ""
@@ -47,6 +48,7 @@ struct FeedbackView: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         content
             .onAppear {
                 guard !contextLoaded else { return }
@@ -65,6 +67,7 @@ struct FeedbackView: View {
                 if UserDefaults.standard.bool(forKey: "qaFeedbackSend") { send() }
             }
             #endif
+        }
     }
 
     @ViewBuilder private var content: some View {
@@ -216,6 +219,7 @@ private struct FeedbackPage: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             VStack(spacing: compact ? 22 : 28) {
                 header
@@ -231,13 +235,14 @@ private struct FeedbackPage: View {
             .padding(.horizontal, compact ? Layout.gutter : 32).padding(.top, compact ? 20 : 32).padding(.bottom, 40)
             .frame(maxWidth: Layout.settingsWidth)
             .frame(maxWidth: .infinity)
-            .animation(.smooth(duration: 0.35), value: sent)
+            .animation(.easeInOut(duration: 0.35), value: sent)
         }
         #if os(iOS)
         .scrollDismissesKeyboard(.interactively)
         .background { Backdrop() }
         #endif
         .screenTitle(L10n.text("Send Feedback"), width: Layout.settingsWidth)
+        }
     }
 
     private var header: some View {
@@ -442,6 +447,7 @@ private struct FeedbackHistory: View {
     private static let card = RoundedRectangle(cornerRadius: 14, style: .continuous)
 
     var body: some View {
+        WithPerceptionTracking {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Label(L10n.text("Your Feedback"), systemImage: "tray.full")
@@ -464,6 +470,7 @@ private struct FeedbackHistory: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: open)
+        }
     }
 
     private func row(_ item: Feedback.Sent) -> some View {
@@ -548,6 +555,7 @@ private struct FeedbackKindCard: View {
     private let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
     var body: some View {
+        WithPerceptionTracking {
         Button(action: action) {
             VStack(alignment: .leading, spacing: compact ? 8 : 10) {
                 HStack(alignment: .top) {
@@ -579,6 +587,7 @@ private struct FeedbackKindCard: View {
         .animation(.easeOut(duration: 0.15), value: selected)
         .animation(.easeOut(duration: 0.12), value: hovering)
         .accessibilityAddTraits(selected ? .isSelected : [])
+        }
     }
 }
 
@@ -620,6 +629,7 @@ private extension Feedback.Kind {
 struct TelegramGroupView: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
+        WithPerceptionTracking {
         TVSettingsSubpage(symbol: "paperplane", title: L10n.text("Telegram Group"), subtitle: L10n.text("Chat with the developer and other users")) {
             VStack(spacing: 24) {
                 if let image = QRCode.image(Support.telegram.absoluteString) {
@@ -632,6 +642,7 @@ struct TelegramGroupView: View {
                 Text(L10n.text("Scan with your iPhone to join the group.")).font(.system(size: 24)).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
+        }
         }
     }
 }

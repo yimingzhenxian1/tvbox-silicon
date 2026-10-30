@@ -1,3 +1,5 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
@@ -7,7 +9,7 @@ extension View {
 }
 
 private struct MusicPlayerInset: ViewModifier {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.horizontalSizeClass) private var sizeClass
     func body(content: Content) -> some View {
         #if os(tvOS) || os(macOS)
@@ -42,8 +44,9 @@ private struct MusicPlayerInset: ViewModifier {
 /// A spinner while a channel is found, bars while sound plays.
 /// In a fixed square: the symbols differ in width, and a row would shift as they change.
 struct MusicActivityMark: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if store.music.busy { ProgressView().controlSize(.small) }
             else if store.music.phase == .playing { Image(systemName: "waveform").foregroundStyle(Brand.accent).symbolEffect(.variableColor.iterative) }
@@ -51,6 +54,7 @@ struct MusicActivityMark: View {
             else { Image(systemName: "speaker.wave.2.fill").foregroundStyle(.secondary) }
         }
         .frame(width: 24, height: 24)
+        }
     }
 }
 
@@ -64,7 +68,7 @@ enum MusicTime {
 
 /// The player panel: the song, the line being sung, progress, the format actually read, controls.
 struct MusicNowPlaying: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var showsChannels = false
     @State private var showsLyrics = false
@@ -76,6 +80,7 @@ struct MusicNowPlaying: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 14) {
@@ -125,10 +130,11 @@ struct MusicNowPlaying: View {
         .sheet(isPresented: $showsLyrics) { MusicLyricsView() }
         #if DEBUG
         // `-qaMusicLyrics 1` opens the lyrics once they load, for screenshots.
-        .onChange(of: music.lyrics) { _, lyrics in
+        .legacyOnChange(of: music.lyrics) { _, lyrics in
             if lyrics != nil, UserDefaults.standard.bool(forKey: "qaMusicLyrics") { showsLyrics = true }
         }
         #endif
+        }
     }
 
     private func queueLine(_ queue: MusicQueue) -> String? {
@@ -272,7 +278,7 @@ struct MusicNowPlaying: View {
 /// The song's lyrics, following playback: the line being sung is highlighted and kept in view,
 /// with its translation under it. Tapping a line plays from there.
 struct MusicLyricsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     #if os(tvOS)
     private let size: CGFloat = 38, translationSize: CGFloat = 26
     #else
@@ -280,6 +286,7 @@ struct MusicLyricsView: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         MusicSheet(title: music.track?.title ?? L10n.text("Lyrics"), symbol: "quote.bubble") {
             VStack(spacing: 0) {
@@ -300,6 +307,7 @@ struct MusicLyricsView: View {
                 }
             }
         }
+        }
     }
 
     private func lines(_ lyrics: MusicLyrics, current: Int?) -> some View {
@@ -310,7 +318,7 @@ struct MusicLyricsView: View {
 /// The lines themselves. The line being sung is kept in the middle through the scroll view's
 /// own position binding; scrolling by hand works, and the next line brings the view back.
 struct MusicLyricLines: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let lyrics: MusicLyrics
     let current: Int?
     let size: CGFloat
@@ -318,6 +326,7 @@ struct MusicLyricLines: View {
     @State private var scrolled: Int?
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: size * 0.8) {
                 ForEach(Array(lyrics.lines.enumerated()), id: \.offset) { index, line in
@@ -358,19 +367,21 @@ struct MusicLyricLines: View {
         // Once the lines are laid out: set as the view appeared, the position was dropped, and
         // reopening the player left the lyrics at the top until the next line.
         .task { try? await Task.legacySleep(for: .milliseconds(60)); scrolled = current }
-        .onChange(of: current) { _, index in
+        .legacyOnChange(of: current) { _, index in
             guard let index else { return }
-            withAnimation(.smooth(duration: 0.45)) { scrolled = index }
+            withAnimation(.easeInOut(duration: 0.45)) { scrolled = index }
+        }
         }
     }
 }
 
 /// Every channel tried for the song, what each served, and a way to switch.
 struct MusicChannelsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         MusicSheet(title: L10n.text("Channels"), symbol: "antenna.radiowaves.left.and.right") {
             List {
@@ -403,6 +414,7 @@ struct MusicChannelsView: View {
                 }
             }
         }
+        }
     }
 
     struct Row {
@@ -434,7 +446,7 @@ struct MusicChannelsView: View {
 
 /// Quality preference and the channels to use.
 struct MusicSettingsView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
 
     /// Each channel and the services it plays from.
     private static var channels: [(MusicProviderID, String)] {
@@ -454,7 +466,8 @@ struct MusicSettingsView: View {
     }
 
     var body: some View {
-        @Bindable var music = store.music
+        @Perception.Bindable var music = store.music
+        WithPerceptionTracking {
         #if os(tvOS)
         // A page like Settings' own, over the whole screen: a tvOS sheet is a small card that cut the
         // channels off. Quality steps through its choices; Menu closes the page.
@@ -510,6 +523,7 @@ struct MusicSettingsView: View {
             #endif
         }
         #endif
+        }
     }
 
     private func enabled(_ provider: MusicProviderID, music: MusicPlaybackSession) -> Binding<Bool> {
@@ -528,6 +542,7 @@ private struct MusicSheet<Content: View>: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(macOS)
         VStack(spacing: 0) {
             HStack(spacing: 12) {
@@ -542,7 +557,7 @@ private struct MusicSheet<Content: View>: View {
         }
         .frame(minWidth: 480, minHeight: 420)
         #else
-        NavigationStack {
+        NBNavigationStack {
             content
                 .navigationTitle(title)
                 #if os(iOS)
@@ -551,13 +566,15 @@ private struct MusicSheet<Content: View>: View {
                 #endif
         }
         #endif
+        }
     }
 }
 
 /// Moves the lyrics earlier or later against the audio, in half seconds, remembered per song.
 struct MusicLyricsTiming: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         HStack(spacing: 12) {
             Button { music.adjustLyrics(by: -0.5) } label: { Label(L10n.text("Lyrics Later"), systemImage: "minus") }
@@ -573,6 +590,7 @@ struct MusicLyricsTiming: View {
         }
         .labelStyle(.titleAndIcon)
         .frame(maxWidth: .infinity)
+        }
     }
 }
 
@@ -580,10 +598,11 @@ struct MusicLyricsTiming: View {
 /// A thin bar that thickens while dragged, with elapsed and remaining time under it, as in Music.
 /// The position follows the finger and holds at the target until the seek lands.
 struct MusicScrubber: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var dragging: Double?
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         let total = music.duration ?? 0
         let position = dragging.map { $0 * total } ?? min(music.seekingTo ?? music.position, total)
@@ -619,6 +638,7 @@ struct MusicScrubber: View {
         .accessibilityValue(MusicTime.text(position) + " / " + MusicTime.text(total))
         .accessibilityAdjustableAction { direction in
             music.skip(by: direction == .increment ? 10 : -10)
+        }
         }
     }
 }

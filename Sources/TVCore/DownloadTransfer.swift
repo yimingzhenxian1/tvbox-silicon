@@ -456,7 +456,7 @@ struct Transfer: Sendable {
         do { return try body() } catch {
             let error = error as NSError
             if (error.domain == NSCocoaErrorDomain && error.code == NSFileWriteOutOfSpaceError) || (error.domain == NSPOSIXErrorDomain && error.code == Int(ENOSPC)) {
-                throw TransferError.noSpace(needed: 0, available: DownloadLibrary.availableCapacity(at: URL.temporaryDirectory) ?? 0)
+                throw TransferError.noSpace(needed: 0, available: DownloadLibrary.availableCapacity(at: FileManager.default.temporaryDirectory) ?? 0)
             }
             throw error
         }
@@ -567,7 +567,7 @@ enum HLS {
     /// An attribute list (`KEY=value,KEY="quoted, value"`).
     static func attributes(_ text: String) -> [String: String] {
         var result: [String: String] = [:]
-        for match in text.matches(of: /([A-Z0-9-]+)=("[^"]*"|[^,]*)/) {
+        for match in text.legacyMatches(#"([A-Z0-9-]+)=("[^"]*"|[^,]*)"#) {
             var value = String(match.2)
             if value.hasPrefix("\"") { value = String(value.dropFirst().dropLast()) }
             result[String(match.1)] = value

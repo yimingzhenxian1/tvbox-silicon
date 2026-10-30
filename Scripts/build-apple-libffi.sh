@@ -4,8 +4,8 @@ cd "$(dirname "$0")/.."
 WORK="$PWD/build/apple-runtime"
 TARGET="${1:-ios}"
 case "$TARGET" in
-  ios) SDK=iphoneos; TRIPLE=arm64-apple-ios17.0 ;;
-  ios-simulator) SDK=iphonesimulator; TRIPLE=arm64-apple-ios17.0-simulator ;;
+  ios) SDK=iphoneos; TRIPLE=arm64-apple-ios15.6 ;;
+  ios-simulator) SDK=iphonesimulator; TRIPLE=arm64-apple-ios15.6-simulator ;;
   tvos) SDK=appletvos; TRIPLE=arm64-apple-tvos17.0 ;;
   tvos-simulator) SDK=appletvsimulator; TRIPLE=arm64-apple-tvos17.0-simulator ;;
   *) echo "Usage: $0 [ios|ios-simulator|tvos|tvos-simulator]" >&2; exit 2 ;;

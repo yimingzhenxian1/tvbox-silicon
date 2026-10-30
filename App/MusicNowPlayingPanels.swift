@@ -1,3 +1,4 @@
+import Perception
 #if !os(tvOS)
 import SwiftUI
 import TVCore
@@ -6,7 +7,7 @@ import TVCore
 /// bright and held a third of the way down, the rest faded. Tapping a line plays from it. Without
 /// lyrics the panel says so in the same space, so nothing around it moves.
 struct MusicNowPlayingLyrics: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var scrolled: Int?
     var showsTranslation = true
     #if os(macOS)
@@ -17,6 +18,7 @@ struct MusicNowPlayingLyrics: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         if let lyrics = music.lyrics {
             ScrollView(showsIndicators: false) {
@@ -49,9 +51,9 @@ struct MusicNowPlayingLyrics: View {
             // Once the lines are laid out: set as the panel appeared, the position was dropped, and
             // reopening the player left the lyrics at the top until the next line.
             .task { try? await Task.legacySleep(for: .milliseconds(60)); scrolled = music.currentLyric }
-            .onChange(of: music.currentLyric) { _, index in
+            .legacyOnChange(of: music.currentLyric) { _, index in
                 guard let index else { return }
-                withAnimation(.smooth(duration: 0.5)) { scrolled = index }
+                withAnimation(.easeInOut(duration: 0.5)) { scrolled = index }
             }
         } else if music.lyricsLoading || music.busy {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,14 +61,16 @@ struct MusicNowPlayingLyrics: View {
             ContentUnavailableView(L10n.text("No Lyrics"), systemImage: "quote.bubble",
                                    description: Text(L10n.text("None of the catalogs has lyrics for this song.")))
         }
+        }
     }
 }
 
 /// The songs after this one in what is playing; tapping one plays it.
 struct MusicUpNext: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         let queue = music.queue
         let upcoming = queue.map { queue in Array(queue.tracks.enumerated()).filter { $0.offset > queue.index } } ?? []
@@ -98,6 +102,7 @@ struct MusicUpNext: View {
                 }
                 .padding(.vertical, 12)
             }
+        }
         }
     }
 }

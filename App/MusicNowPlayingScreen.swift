@@ -1,3 +1,4 @@
+import Perception
 #if os(iOS)
 import AVKit
 import MediaPlayer
@@ -9,7 +10,7 @@ import TVCore
 /// Lyrics and Up Next take the cover's place, which shrinks into the corner beside the title.
 struct MusicNowPlayingScreen: View {
     enum Panel: Hashable { case lyrics, queue }
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var panel: Panel?
     @State private var tint = Color(white: 0.24)
@@ -17,6 +18,7 @@ struct MusicNowPlayingScreen: View {
     @Namespace private var cover
 
     var body: some View {
+        WithPerceptionTracking {
         let music = store.music
         VStack(spacing: 0) {
             if let panel {
@@ -57,7 +59,7 @@ struct MusicNowPlayingScreen: View {
             guard let url = music.track?.artwork, let color = await PosterPalette.average(url) else { return }
             withAnimation(.easeInOut(duration: 0.6)) { tint = color }
         }
-        .onChange(of: music.track == nil) { _, gone in if gone { dismiss() } }
+        .legacyOnChange(of: music.track == nil) { _, gone in if gone { dismiss() } }
         #if DEBUG
         .onAppear {
             switch UserDefaults.standard.string(forKey: "qaNowPlaying") {
@@ -68,6 +70,7 @@ struct MusicNowPlayingScreen: View {
         }
         #endif
         .sheet(isPresented: $showsChannels) { MusicChannelsView() }
+        }
     }
 
     private var backdrop: some View {
@@ -194,6 +197,7 @@ struct MusicVolumeSlider: View {
     @State private var system = SystemSlider()
 
     var body: some View {
+        WithPerceptionTracking {
         HStack(spacing: 12) {
             Image(systemName: "speaker.fill")
             GeometryReader { proxy in
@@ -229,6 +233,7 @@ struct MusicVolumeSlider: View {
         .accessibilityAdjustableAction { direction in
             level = min(1, max(0, level + (direction == .increment ? 0.0625 : -0.0625)))
             system.set(level)
+        }
         }
     }
 

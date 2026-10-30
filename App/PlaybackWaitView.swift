@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -48,6 +49,7 @@ struct PlaybackWaitView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { proxy in
             let picture = Self.picture(in: proxy.size)
             let layout = Self.layout(size: proxy.size, picture: picture)
@@ -70,6 +72,7 @@ struct PlaybackWaitView: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.6)) { poster = image }
             drifting = true
+        }
         }
     }
 
@@ -223,7 +226,7 @@ struct PlaybackWaitView: View {
                     }
                 }
             }
-            .animation(.smooth(duration: 0.45), value: wait)
+            .animation(.easeInOut(duration: 0.45), value: wait)
             .padding(.horizontal, 24)
             .accessibilityElement(children: .combine)
             VStack(spacing: 0) {
@@ -276,6 +279,7 @@ struct WaitDetails: View {
     var detail: String?
     var steps: [String] = []
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 3) {
             if let detail { Text(detail).font(.caption.monospacedDigit()).foregroundStyle(.white.opacity(0.75)) }
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
@@ -285,6 +289,7 @@ struct WaitDetails: View {
         .lineLimit(1)
         .multilineTextAlignment(.center)
         .shadow(color: .black.opacity(0.45), radius: 6)
+        }
     }
 }
 
@@ -292,6 +297,7 @@ struct WaitDetails: View {
 private struct LightSweep: View {
     private static let light = Color(red: 1, green: 0.93, blue: 0.83)
     var body: some View {
+        WithPerceptionTracking {
         GeometryReader { proxy in
             // 30 frames a second is plenty for a slow band of light, and half the work of the display rate.
             TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
@@ -308,5 +314,6 @@ private struct LightSweep: View {
             }
         }
         .allowsHitTesting(false)
+        }
     }
 }

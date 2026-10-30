@@ -1,9 +1,11 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
 /// Watched titles, newest first: resume where you left off, or select titles to remove.
 struct PlaybackHistoryView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var query = ""
     @State private var managing = false
     @State private var selected = Set<String>()
@@ -15,6 +17,7 @@ struct PlaybackHistoryView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if history.entries.isEmpty {
                 EmptyPage(symbol: AppSection.history.icon, title: L10n.text("No Playback History Yet"),
@@ -27,7 +30,7 @@ struct PlaybackHistoryView: View {
         .screenBackdrop()
         .historyDetailsDestination()
         .tabTitle(L10n.text("Playback History"))
-        .onChange(of: history.entries.isEmpty) { _, empty in if empty { managing = false; selected.removeAll() } }
+        .legacyOnChange(of: history.entries.isEmpty) { _, empty in if empty { managing = false; selected.removeAll() } }
         // Leaving the page gives up a title still being prepared.
         .onDisappear { if store.playing == nil { store.cancelResume() } }
         .confirmationDialog(L10n.text("Remove selected history and its cached content?"), isPresented: $confirmsDelete, titleVisibility: .visible) {
@@ -37,6 +40,7 @@ struct PlaybackHistoryView: View {
             .accessibilityIdentifier("history.confirmDelete")
         } message: {
             Text(L10n.text("Removing a title also clears its cached content and skip times."))
+        }
         }
     }
 
@@ -125,7 +129,7 @@ enum HistoryFormat {
 /// A watched title as a poster card, with progress along the poster's foot. Continue Watching shows
 /// the episode; the History page (`details`) adds the source and where playback resumes.
 struct HistoryCard: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.stripDrag) private var drag
     @Environment(\.openHistoryDetails) private var openDetails
     #if os(iOS)
@@ -151,6 +155,7 @@ struct HistoryCard: View {
         #endif
     }
     var body: some View {
+        WithPerceptionTracking {
         // The heart is a sibling of the poster button, so a click does not resume or change the selection.
         ZStack(alignment: .topLeading) {
             posterButton
@@ -176,8 +181,9 @@ struct HistoryCard: View {
         }
         #if !os(tvOS)
         .onHover { hovering = $0 }
-        .animation(.smooth(duration: 0.15), value: hovering)
+        .animation(.easeInOut(duration: 0.15), value: hovering)
         #endif
+        }
     }
 
     /// Remove control, rose under the pointer. A pointer shows it; the context menu stays for touch and the remote.
@@ -213,7 +219,7 @@ struct HistoryCard: View {
             #if os(iOS)
             // On an iPhone the title's watch page opens and resumes it at the top (`VideoDetailView`).
             if action == nil, WatchPage.applies(horizontalSizeClass, verticalSizeClass), let client = store.historyClient(entry) {
-                NavigationLink(value: Route { AnyView(VideoDetailView(video: entry.listVideo, client: client, resume: entry)) }) { cardLabel }
+                NBNavigationLink(value: Route { AnyView(VideoDetailView(video: entry.listVideo, client: client, resume: entry)) }) { cardLabel }
                     .cardButton()
             } else {
                 resumeButton
@@ -309,7 +315,7 @@ private struct HistoryDetailsDestination: ViewModifier {
     func body(content: Content) -> some View {
         content
             .environment(\.openHistoryDetails) { if let openRoute { openRoute($0) } else { route = $0 } }
-            .navigationDestination(item: $route) { route in
+            .nbNavigationDestination(item: $route) { route in
                 #if os(macOS)
                 route.build().musicBar()
                 #else

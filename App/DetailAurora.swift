@@ -1,3 +1,4 @@
+import Perception
 #if os(macOS)
 import SwiftUI
 import ColorfulX
@@ -13,6 +14,7 @@ struct DetailAurora: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var colors: [Color] = []
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             Backdrop()
             if !colors.isEmpty {
@@ -29,6 +31,7 @@ struct DetailAurora: View {
             guard let poster else { return }
             let found = await PosterPalette.colors(poster, headers: headers)
             withAnimation(.easeInOut(duration: 0.8)) { colors = found }
+        }
         }
     }
 }

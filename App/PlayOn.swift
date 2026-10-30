@@ -139,6 +139,7 @@ import AVKit
 /// What another device sent and from where, at the top of the window until the player opens.
 struct PlayOnIncoming: View {
     var body: some View {
+        WithPerceptionTracking {
         if let incoming = PlayOnController.shared.incoming {
             HStack(spacing: Self.spacing) {
                 ProgressView()
@@ -157,6 +158,7 @@ struct PlayOnIncoming: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .allowsHitTesting(false)
             .transition(.move(edge: .top).combined(with: .opacity))
+        }
         }
     }
     #if os(tvOS)
@@ -177,7 +179,7 @@ struct PlayOnButton: View {
     let browser: PlayOnBrowser
     /// The receiver took it: the name it goes by.
     let sent: (String) -> Void
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var sending: String?
     @State private var failure: (receiver: String, message: String)?
     #if os(iOS)
@@ -185,6 +187,7 @@ struct PlayOnButton: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         Menu {
             Section(L10n.text("Play On")) {
                 ForEach(browser.receivers) { receiver in
@@ -233,7 +236,7 @@ struct PlayOnButton: View {
         #if DEBUG
         // `-qaPlayOn <name or *>`: sends to that device once it shows up, once per launch, after
         // `-qaPlayOnDelay <seconds>` of playback.
-        .onChange(of: browser.receivers, initial: true) { _, receivers in
+        .legacyOnChange(of: browser.receivers, initial: true) { _, receivers in
             guard let wanted = UserDefaults.standard.string(forKey: "qaPlayOn"), !Self.qaSent,
                   let receiver = receivers.first(where: { $0.name == wanted || wanted == "*" }) else { return }
             Self.qaSent = true
@@ -251,6 +254,7 @@ struct PlayOnButton: View {
         }
         #endif
         #endif
+        }
     }
     #if DEBUG
     @MainActor private static var qaSent = false
@@ -310,6 +314,7 @@ struct PlayOnPlaceholder: View {
     let receiver: String
     let playHere: () -> Void
     var body: some View {
+        WithPerceptionTracking {
         VStack(spacing: 14) {
             Image(systemName: "play.tv").font(.system(size: 48, weight: .light))
             Text(L10n.text("Playing on %@", receiver)).font(.callout)
@@ -320,6 +325,7 @@ struct PlayOnPlaceholder: View {
         .foregroundStyle(.white.opacity(0.8))
         .multilineTextAlignment(.center)
         .padding(32)
+        }
     }
 }
 #endif

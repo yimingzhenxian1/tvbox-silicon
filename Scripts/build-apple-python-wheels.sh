@@ -28,7 +28,7 @@ XCFRAMEWORK="$WORK/$FAMILY-$VERSION-$SUPPORT/Python.xcframework"
 WHEELS="$WORK/wheels/$PLATFORM"
 mkdir -p "$WHEELS" "$WORK/sources"
 # BeeWare's compiler wrappers (arm64-apple-ios-clang and so on) read the deployment target from here.
-export IPHONEOS_DEPLOYMENT_TARGET=17.0 TVOS_DEPLOYMENT_TARGET=17.0
+export IPHONEOS_DEPLOYMENT_TARGET=15.6 TVOS_DEPLOYMENT_TARGET=17.0
 export PATH="$XCFRAMEWORK/$SLICE/bin:$PATH"
 
 # pip in this venv believes it runs on the device's platform, so it compiles for it with the wrappers.

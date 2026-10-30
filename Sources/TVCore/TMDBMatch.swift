@@ -353,10 +353,10 @@ extension TMDBMatch {
         func number(_ digits: Substring) -> Int? { digits.count <= 4 ? Int(digits) : nil }
         if let match = text.legacyFirstMatch(#"[Ss]\d{1,2}\s*[Ee][Pp]?\s*(\d+)"#) { return number(match.1) }
         if let match = text.legacyFirstMatch(#"(?:第|[Ee][Pp]?\s*)(\d+)"#) { return number(match.1) }
-        for match in text.matches(of: /\d+(?:\.\d+)?/) {
-            let digits = text[match.range]
+        for match in text.legacyMatches(#"\d+(?:\.\d+)?"#) {
+            let digits = match.0
             guard !digits.contains("."), let value = number(digits) else { continue }
-            let after = text[match.range.upperBound...].first.map { String($0).lowercased() } ?? ""
+            let after = text[match.0.endIndex...].first.map { String($0).lowercased() } ?? ""
             if after == "p" || after == "k" { continue }
             if digits.count == 4, (1900...2100).contains(value) { continue }
             return value

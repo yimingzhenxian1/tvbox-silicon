@@ -10,7 +10,7 @@ struct PlaybackView: View {
     var watch: WatchPlayback? = nil
     #endif
     @Environment(\.dismiss) private var dismiss
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var session = PlaybackSession()
     @State private var showsChrome = true
     @State private var hideTask: Task<Void, Never>?
@@ -35,6 +35,7 @@ struct PlaybackView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             #if os(iOS)
             Color.black.playerBleed(playerLayout != .inline)
@@ -103,7 +104,7 @@ struct PlaybackView: View {
         .onContinuousHover { _ in poke() }
         #if os(iOS)
         // The controls stay up while paused and start their countdown again on play.
-        .onChange(of: session.paused) { _, paused in if paused { hideTask?.cancel() } else if showsChrome { scheduleHide() } }
+        .legacyOnChange(of: session.paused) { _, paused in if paused { hideTask?.cancel() } else if showsChrome { scheduleHide() } }
         #else
         .simultaneousGesture(TapGesture().onEnded { poke() })
         #endif
@@ -118,13 +119,13 @@ struct PlaybackView: View {
             if !Task.isCancelled { toggleFullScreen() }
         }
         #endif
-        .onChange(of: channel) { _, channel in startCatalogPlayback(session, channel: channel, store: store); showOnStart() }
+        .legacyOnChange(of: channel) { _, channel in startCatalogPlayback(session, channel: channel, store: store); showOnStart() }
         #if os(iOS)
-        .onChange(of: session.showsPicture || session.error != nil, initial: true) { _, started in watch?.started(started) }
+        .legacyOnChange(of: session.showsPicture || session.error != nil, initial: true) { _, started in watch?.started(started) }
         .onAppear { watch?.opened(session) }
         #endif
-        .onChange(of: showsDanmaku) { _, value in session.catalogDanmaku.enabled = value }
-        .onChange(of: session.catalogDanmaku.enabled) { _, value in showsDanmaku = value }
+        .legacyOnChange(of: showsDanmaku) { _, value in session.catalogDanmaku.enabled = value }
+        .legacyOnChange(of: session.catalogDanmaku.enabled) { _, value in showsDanmaku = value }
         .onDisappear {
             hideTask?.cancel(); store.cancelEpisodeSelection(); session.stop()
             #if os(iOS)
@@ -134,10 +135,11 @@ struct PlaybackView: View {
         #if os(iOS)
         // Opening iPhone Duo moves the app to the inner display, which ignores orientations: drop a
         // landscape lock so the outer display isn't left in landscape when it closes again.
-        .onChange(of: horizontalSizeClass == .regular && verticalSizeClass == .regular) { _, large in
+        .legacyOnChange(of: horizontalSizeClass == .regular && verticalSizeClass == .regular) { _, large in
             if large { PlayerOrientation.release() }
         }
         #endif
+        }
     }
 
     #if DEBUG
@@ -268,7 +270,7 @@ struct PlaybackView: View {
         #endif
         hideTask = Task {
             try? await Task.legacySleep(for: .seconds(delay))
-            if !Task.isCancelled { withAnimation(.smooth(duration: 0.3)) { showsChrome = false } }
+            if !Task.isCancelled { withAnimation(.easeInOut(duration: 0.3)) { showsChrome = false } }
         }
     }
 
@@ -299,7 +301,7 @@ struct PlaybackView: View {
         #endif
         guard showsChrome, !quietStart else { return poke() }
         hideTask?.cancel()
-        withAnimation(.smooth(duration: 0.25)) { showsChrome = false }
+        withAnimation(.easeInOut(duration: 0.25)) { showsChrome = false }
     }
 
     /// The seek bar is held: the controls stay until it is let go, then count down again.
@@ -480,6 +482,7 @@ private struct TVPlaybackFailureView: View {
     @FocusState private var retryFocused: Bool
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             if let backdrop { backdrop.view } else { TVStyle.background.ignoresSafeArea() }
             VStack(spacing: 0) {
@@ -528,6 +531,7 @@ private struct TVPlaybackFailureView: View {
         }
         .onAppear { retryFocused = true }
         .onExitCommand(perform: goBack)
+        }
     }
 }
 
@@ -537,6 +541,7 @@ private struct TVPlaybackRecoveryStyle: ButtonStyle {
         let configuration: ButtonStyleConfiguration
         @Environment(\.isFocused) private var focused
         var body: some View {
+            WithPerceptionTracking {
             configuration.label
                 .font(.system(size: 26, weight: .semibold))
                 .padding(.horizontal, 32).padding(.vertical, 20)
@@ -545,6 +550,7 @@ private struct TVPlaybackRecoveryStyle: ButtonStyle {
                 .background(focused ? Color.white : TVStyle.raised, in: Capsule())
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .animation(.easeOut(duration: 0.12), value: focused)
+            }
         }
     }
 }
@@ -558,9 +564,11 @@ private struct NativePlayerView: View {
     var opacity = 0.9
     var revision = ""
     var body: some View {
+        WithPerceptionTracking {
         ZStack {
             PlayerSurface(player: player)
             if showsDanmaku && !comments.isEmpty { DanmakuOverlay(player: player, comments: comments, opacity: opacity, revision: revision).ignoresSafeArea() }
+        }
         }
     }
 }
@@ -859,12 +867,12 @@ private struct NativePlayerView: UIViewControllerRepresentable {
     }
 
     func poke() {
-        if !visible { withAnimation(.smooth(duration: 0.25)) { visible = true } }
+        if !visible { withAnimation(.easeInOut(duration: 0.25)) { visible = true } }
         task?.cancel()
         task = Task { [weak self] in
             try? await Task.legacySleep(for: .seconds(2.5))
             guard !Task.isCancelled, let self else { return }
-            withAnimation(.smooth(duration: 0.4)) { self.visible = false }
+            withAnimation(.easeInOut(duration: 0.4)) { self.visible = false }
             NSCursor.setHiddenUntilMouseMoves(true)
         }
     }
@@ -879,9 +887,9 @@ private struct DesktopPlaybackRoot: View {
 }
 
 private struct DesktopPlaybackView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let channel: Channel
-    @Bindable var session: PlaybackSession
+    @Perception.Bindable var session: PlaybackSession
     let window: PlaybackWindow
     @State private var fillsFrame = false
     @State private var floats = false
@@ -898,6 +906,7 @@ private struct DesktopPlaybackView: View {
     private var waitContent: PlaybackWaitContent? { .make(session, channel: channel, store: store, linesHint: true) }
 
     var body: some View {
+        WithPerceptionTracking {
         ZStack(alignment: .top) {
             ZStack {
                 Color.black
@@ -929,18 +938,19 @@ private struct DesktopPlaybackView: View {
         }
         .preferredColorScheme(.dark)
         .ignoresSafeArea()
-        .onChange(of: showsDanmaku) { _, value in session.catalogDanmaku.enabled = value }
-        .onChange(of: session.catalogDanmaku.enabled) { _, value in showsDanmaku = value }
-        .onChange(of: floats) { _, value in window.level = value ? .floating : .normal }
-        .onChange(of: showsChrome) { _, value in setTrafficLights(visible: value) }
+        .legacyOnChange(of: showsDanmaku) { _, value in session.catalogDanmaku.enabled = value }
+        .legacyOnChange(of: session.catalogDanmaku.enabled) { _, value in showsDanmaku = value }
+        .legacyOnChange(of: floats) { _, value in window.level = value ? .floating : .normal }
+        .legacyOnChange(of: showsChrome) { _, value in setTrafficLights(visible: value) }
         .onAppear { floats = window.level == .floating; idle.attach(window); tvBrowser.start() }
         // Played here again (Space, say): the other device no longer has it to itself.
-        .onChange(of: session.paused) { _, paused in if !paused { playingOn = nil } }
+        .legacyOnChange(of: session.paused) { _, paused in if !paused { playingOn = nil } }
         .sheet(isPresented: $showsDanmakuList) {
             DanmakuListView(player: session.player, comments: session.danmaku) { showsDanmakuList = false }
                 .danmakuListPresentation()
         }
         .onDisappear { idle.detach(); tvBrowser.stop() }
+        }
     }
 
     /// Title on the left (beside the traffic lights), actions on the right, over a soft scrim.
@@ -1099,11 +1109,13 @@ private final class PassthroughHostingView<Content: View>: NSHostingView<Content
 struct QualityPicker: View {
     let session: PlaybackSession
     var body: some View {
+        WithPerceptionTracking {
         Picker(L10n.text("Quality"), selection: Binding(get: { session.quality ?? 0 }, set: { session.choose(quality: $0 == 0 ? nil : $0) })) {
             Text(L10n.text("Auto")).tag(0)
             ForEach(session.qualities) { Text($0.label).tag($0.id) }
         }
         .pickerStyle(.inline)
+        }
     }
 }
 #endif

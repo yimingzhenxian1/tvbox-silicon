@@ -1,8 +1,10 @@
+import NavigationBackport
+import Perception
 import SwiftUI
 import TVCore
 
 struct SitesView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var query = ""
     /// Groups the viewer folded. Every group starts open, subscriptions and hidden sources included,
     /// so nothing on the page needs finding. Reset with the page, not with a pushed source: the state
@@ -13,6 +15,7 @@ struct SitesView: View {
     @State private var foldBeforeSearch: Set<String>?
     @State private var arranging = false
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if let config = store.subscription {
                 let groups = store.sourceGroups(includeHidden: false).filtered(by: query)
@@ -62,10 +65,10 @@ struct SitesView: View {
                 prepared = true
             }
         }
-        .onChange(of: store.section) { _, new in
+        .legacyOnChange(of: store.section) { _, new in
             if new != .sites { prepared = false }
         }
-        .onChange(of: query) { old, new in
+        .legacyOnChange(of: query) { old, new in
             if old.isEmpty && !new.isEmpty {
                 foldBeforeSearch = collapsed
                 collapsed = []
@@ -73,6 +76,7 @@ struct SitesView: View {
                 collapsed = saved
                 foldBeforeSearch = nil
             }
+        }
         }
     }
 
@@ -171,8 +175,10 @@ struct SourceHealthDot: View {
     private let size: CGFloat = 8
     #endif
     var body: some View {
+        WithPerceptionTracking {
         if let tint = status.tint {
             Image(systemName: "circle.fill").font(.system(size: size)).foregroundStyle(tint).accessibilityLabel(status.summary)
+        }
         }
     }
 }
@@ -181,7 +187,7 @@ struct SourceHealthDot: View {
 /// ("不卡", "秒播") and engine a quiet second line, so a page of sources reads like a launcher
 /// rather than a wall of identical badges. Use with `tileButton()`: on tvOS the card lights up itself.
 struct SiteCard: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.isFocused) private var isFocused
     let site: Site
     /// A source the viewer hid, shown only while hidden sources are revealed.
@@ -197,6 +203,7 @@ struct SiteCard: View {
     private let focused = false
     #endif
     var body: some View {
+        WithPerceptionTracking {
         let label = SourceLabel(site.name)
         let pinned = marksPinned && (store.subscription.map { store.pinnedSources.contains(site, origin: $0.origin) } ?? false)
         let runs = site.isBuiltIn || site.canBrowse(jarURL: store.subscription?.spiderURL)
@@ -235,6 +242,7 @@ struct SiteCard: View {
         .background { TileSurface(focused: focused, radius: radius) }
         .accessibilityElement(children: .combine)
         .opacity(dimmed ? 0.45 : 1)
+        }
     }
 
     /// Which engine runs a source is an implementation detail; only built-in sources say so.
@@ -246,6 +254,7 @@ struct TileSurface: View {
     var focused: Bool
     var radius: CGFloat
     var body: some View {
+        WithPerceptionTracking {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         #if os(tvOS)
         // Like the system's focused buttons: a quiet tile at rest, a bright plate under focus.
@@ -254,6 +263,7 @@ struct TileSurface: View {
         #else
         Color.clear.contentPanel(cornerRadius: radius)
         #endif
+        }
     }
 }
 
@@ -263,8 +273,10 @@ struct SourceIcon: View {
     let label: SourceLabel
     var size: CGFloat
     var body: some View {
+        WithPerceptionTracking {
         if site.isBilibili { BilibiliMark(size: size) } else {
             MonogramIcon(seed: site.name, label: label, size: size, systemImage: site.key == Hongguo.siteKey ? "play.rectangle.fill" : nil)
+        }
         }
     }
 }
@@ -282,6 +294,7 @@ struct MonogramIcon: View {
         Color(red: 0.62, green: 0.48, blue: 0.88), Color(red: 0.52, green: 0.72, blue: 0.38),
     ]
     var body: some View {
+        WithPerceptionTracking {
         // A stable hash: `hashValue` changes every launch.
         let tint = Self.tints[seed.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF } % Self.tints.count]
         let shape = RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
@@ -300,39 +313,45 @@ struct MonogramIcon: View {
         .background(LinearGradient(colors: [tint.opacity(0.85), tint.opacity(0.45)], startPoint: .topLeading, endPoint: .bottomTrailing), in: shape)
         .overlay { shape.strokeBorder(.white.opacity(0.12), lineWidth: 1) }
         .accessibilityHidden(true)
+        }
     }
 }
 
 struct PinSourceButton: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let site: Site
     let origin: URL
     var body: some View {
+        WithPerceptionTracking {
         let pinned = store.pinnedSources.contains(site, origin: origin)
         Button { store.pinnedSources.toggle(site, origin: origin) } label: {
             Label(L10n.text(pinned ? "Unpin source" : "Pin source"), systemImage: pinned ? "pin.slash" : "pin")
         }.accessibilityIdentifier("source.pin." + site.key)
+        }
     }
 }
 
 struct HideSourceButton: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let site: Site
     let origin: URL
     var body: some View {
+        WithPerceptionTracking {
         let hidden = store.hiddenSources.contains(site, origin: origin)
         Button { store.hiddenSources.toggle(site, origin: origin) } label: {
             Label(L10n.text(hidden ? "Unhide Source" : "Hide Source"), systemImage: hidden ? "eye" : "eye.slash")
         }.accessibilityIdentifier("source.hide." + site.key)
+        }
     }
 }
 
 /// Context-menu moves within the viewer's own source order.
 struct MoveSourceButtons: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let site: Site
     let sites: [Site]
     var body: some View {
+        WithPerceptionTracking {
         if let index = sites.firstIndex(where: { $0.id == site.id }) {
             if index > 0 {
                 Button { store.moveSource(site, to: 0) } label: { Label(L10n.text("Move to Top"), systemImage: "arrow.up.to.line") }
@@ -341,23 +360,25 @@ struct MoveSourceButtons: View {
                 Button { store.moveSource(site, to: sites.count) } label: { Label(L10n.text("Move to Bottom"), systemImage: "arrow.down.to.line") }
             }
         }
+        }
     }
 }
 
 /// The Sources page's header: the switch for the viewer's own order (`SourceOrder`), the top of
 /// that order at a glance, and the way into arranging it.
 struct SourceOrderCard: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let sites: [Site]
     let arrange: () -> Void
     private var enabled: Binding<Bool> {
-        Binding { store.sourceOrder.enabled } set: { on in withAnimation(.smooth) { store.setCustomSourceOrder(on) } }
+        Binding { store.sourceOrder.enabled } set: { on in withAnimation(.easeInOut) { store.setCustomSourceOrder(on) } }
     }
     private var detail: String {
         L10n.text(store.sourceOrder.enabled ? "Sources at the top are searched first, and their results are listed first."
                                             : "Yingxia searches quick, reliable sources first.")
     }
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
         VStack(alignment: .leading, spacing: 8) {
             TVSettingsToggle(title: L10n.text("Custom Search Order"), detail: detail, isOn: enabled)
@@ -407,6 +428,7 @@ struct SourceOrderCard: View {
         .padding(16)
         .contentPanel(cornerRadius: 22)
         #endif
+        }
     }
 }
 
@@ -420,6 +442,7 @@ struct SourceOrderPreview: View {
     private let size: CGFloat = 30
     #endif
     var body: some View {
+        WithPerceptionTracking {
         let shown = Array(sites.prefix(limit))
         HStack(spacing: size * 0.32) {
             ForEach(Array(shown.enumerated()), id: \.element.id) { index, site in
@@ -435,6 +458,7 @@ struct SourceOrderPreview: View {
         // Room for the badges that stick out.
         .padding(.top, size * 0.18).padding(.leading, size * 0.18)
         .accessibilityHidden(true)
+        }
     }
 }
 
@@ -442,18 +466,20 @@ struct SourceRankBadge: View {
     let rank: Int
     var size: CGFloat
     var body: some View {
+        WithPerceptionTracking {
         Text(rank, format: .number).font(.system(size: size * 0.62, weight: .bold, design: .rounded)).monospacedDigit()
             .foregroundStyle(Brand.onAccent)
             .padding(.horizontal, size * 0.2)
             .frame(minWidth: size, minHeight: size)
             .background(Brand.accent, in: Capsule())
             .overlay { Capsule().strokeBorder(.black.opacity(0.25), lineWidth: 1) }
+        }
     }
 }
 
 /// One source in the order editor: its place, icon, name and health.
 private struct SourceOrderRow: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let site: Site
     let rank: Int
     #if os(tvOS)
@@ -464,6 +490,7 @@ private struct SourceOrderRow: View {
     private let title = Font.body.weight(.medium), caption = Font.caption
     #endif
     var body: some View {
+        WithPerceptionTracking {
         let label = SourceLabel(site.name)
         let detail = (label.parts.dropFirst() + [site.isBuiltIn ? L10n.text("Built-in") : nil].compactMap { $0 }).joined(separator: " · ")
         HStack(spacing: 12) {
@@ -486,13 +513,14 @@ private struct SourceOrderRow: View {
         }
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)
+        }
     }
 }
 
 /// The viewer's source order as a list to drag into place. tvOS has no dragging: there, choose a
 /// source, then where it goes; each move is saved at once.
 struct SourceOrderEditor: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var sites: [Site]
     /// What Reset goes back to.
@@ -513,8 +541,9 @@ struct SourceOrderEditor: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         #if os(tvOS)
-        NavigationStack {
+        NBNavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 4) {
                     Text(L10n.text("Choose a source to move it. Sources at the top are searched first, and their results are listed first."))
@@ -525,7 +554,7 @@ struct SourceOrderEditor: View {
                             .accessibilityIdentifier("sources.order.row." + site.key)
                     }
                     TVSettingsAction(title: L10n.text("Reset"), destructive: true) {
-                        withAnimation(.smooth) { sites = automatic }
+                        withAnimation(.easeInOut) { sites = automatic }
                         save()
                     }
                     .disabled(isAutomatic)
@@ -552,7 +581,7 @@ struct SourceOrderEditor: View {
         .frame(width: 1100, height: 800)
         .onExitCommand { dismiss() }
         #else
-        NavigationStack {
+        NBNavigationStack {
             List {
                 Section {
                     ForEach(Array(sites.enumerated()), id: \.element.id) { index, site in
@@ -584,11 +613,11 @@ struct SourceOrderEditor: View {
                 }
                 #if os(iOS)
                 ToolbarItem(placement: .bottomBar) {
-                    Button(L10n.text("Reset")) { withAnimation(.smooth) { sites = automatic } }.disabled(isAutomatic)
+                    Button(L10n.text("Reset")) { withAnimation(.easeInOut) { sites = automatic } }.disabled(isAutomatic)
                 }
                 #else
                 ToolbarItem(placement: .destructiveAction) {
-                    Button(L10n.text("Reset")) { withAnimation(.smooth) { sites = automatic } }.disabled(isAutomatic)
+                    Button(L10n.text("Reset")) { withAnimation(.easeInOut) { sites = automatic } }.disabled(isAutomatic)
                 }
                 #endif
             }
@@ -597,19 +626,20 @@ struct SourceOrderEditor: View {
         .frame(width: 480, height: 600)
         #endif
         #endif
+        }
     }
 
     #if os(tvOS)
     private func move(_ site: Site, to offset: Int) {
         guard let index = sites.firstIndex(where: { $0.id == site.id }) else { return }
-        withAnimation(.smooth) { sites.move(fromOffsets: [index], toOffset: offset) }
+        withAnimation(.easeInOut) { sites.move(fromOffsets: [index], toOffset: offset) }
         save()
     }
     #endif
 }
 
 struct SiteView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @Environment(\.dismiss) private var dismiss
     let site: Site
     let origin: URL
@@ -636,6 +666,7 @@ struct SiteView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             if !canLoad {
                 ContentUnavailableView {
@@ -738,6 +769,7 @@ struct SiteView: View {
                 else { query = initialQuery; await search(); await browser.loadCategories(client: client) }
             }
         }
+        }
     }
     private var categoryBar: some View {
         ChipRow {
@@ -787,15 +819,17 @@ struct CatalogDestination: View {
     let video: Video
     let client: CatalogClient
     var body: some View {
+        WithPerceptionTracking {
         if video.isFolder { SiteView(site: client.site, origin: client.origin, jarURL: client.jarURL, folder: video) }
         else { VideoDetailView(video: video, client: client) }
+        }
     }
 }
 
 struct VideoDetailView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.dismiss) private var dismiss
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let video: Video
     let client: CatalogClient
     /// Opened from Continue Watching: on an iPhone the page resumes it at once.
@@ -867,6 +901,7 @@ struct VideoDetailView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         Group {
             #if os(iOS)
             if watchLayout { watchBody } else { pageBody }
@@ -904,7 +939,7 @@ struct VideoDetailView: View {
         }
         .onDisappear { requestTask?.cancel() }
         .task(id: detail?.id) { await startTMDB() }
-        .onChange(of: choosingQuality) { _, open in if !open && !busy { loadingEpisode = nil } }
+        .legacyOnChange(of: choosingQuality) { _, open in if !open && !busy { loadingEpisode = nil } }
         // Sign in where playback failed, then resume the episode that needed the account.
         #if os(macOS)
         .sheet(item: $signingIn) { drive in
@@ -937,8 +972,8 @@ struct VideoDetailView: View {
             DownloadPicker(video: video, site: client.site, flag: activeFlag,
                            episodes: activeEpisodes) { count in
                 guard count > 0 else { return }
-                withAnimation(.smooth(duration: 0.2)) { queuedNotice = count }
-                Task { try? await Task.legacySleep(for: .seconds(6)); withAnimation(.smooth(duration: 0.2)) { queuedNotice = nil } }
+                withAnimation(.easeInOut(duration: 0.2)) { queuedNotice = count }
+                Task { try? await Task.legacySleep(for: .seconds(6)); withAnimation(.easeInOut(duration: 0.2)) { queuedNotice = nil } }
             }
         }
         .confirmationDialog(L10n.text("Choose quality"), isPresented: $choosingQuality, titleVisibility: .visible) {
@@ -947,6 +982,7 @@ struct VideoDetailView: View {
                     Button(choice.name) { startRequest { await resolve(plan, choice: choice, episode: episode) } }
                 }
             }
+        }
         }
     }
 
@@ -1022,13 +1058,13 @@ struct VideoDetailView: View {
                         .settingsButton(prominent: issue.drive == nil)
                         #if os(tvOS)
                         // A focusable action instead of the small corner close button.
-                        Button(L10n.text("Dismiss")) { withAnimation(.smooth(duration: 0.2)) { playbackIssue = nil } }.settingsButton()
+                        Button(L10n.text("Dismiss")) { withAnimation(.easeInOut(duration: 0.2)) { playbackIssue = nil } }.settingsButton()
                         #endif
                     }
                 }
                 Spacer(minLength: 0)
                 #if !os(tvOS)
-                Button { withAnimation(.smooth(duration: 0.2)) { playbackIssue = nil } } label: {
+                Button { withAnimation(.easeInOut(duration: 0.2)) { playbackIssue = nil } } label: {
                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
                         .frame(width: 22, height: 22)
                         .background(Color.primary.opacity(0.07), in: Circle())
@@ -1320,8 +1356,8 @@ struct VideoDetailView: View {
                 if let detail { synopsis(detail) }
             }
         }
-        .animation(.smooth(duration: 0.45), value: tmdb.details)
-        .animation(.smooth(duration: 0.3), value: tmdb.phase)
+        .animation(.easeInOut(duration: 0.45), value: tmdb.details)
+        .animation(.easeInOut(duration: 0.3), value: tmdb.phase)
     }
     @ViewBuilder private var episodePanel: some View {
         if let detail {
@@ -1465,7 +1501,7 @@ struct VideoDetailView: View {
         .padding(.trailing, 16).padding(.vertical, 6)
         #endif
         .tvFocusSection()
-        .animation(.smooth(duration: 0.4), value: showsStills)
+        .animation(.easeInOut(duration: 0.4), value: showsStills)
     }
     /// Mac and iPad, under the banner: TMDB hasn't answered yet. Short-drama-length lists stay chips (see episodeList).
     private var tmdbPending: Bool {
@@ -1496,13 +1532,13 @@ struct VideoDetailView: View {
         // Cloud-drive plugins wait for an in-app login that cannot appear on this platform,
         // which surfaces only as a 60-second timeout. Ask for the account up front instead.
         if !skipAccountCheck, let drive = CloudDrive.missingLogin(forFlag: episode.flag) {
-            withAnimation(.smooth(duration: 0.25)) {
+            withAnimation(.easeInOut(duration: 0.25)) {
                 playbackIssue = PlaybackIssue(episode: episode, message: drive.loginHint, drive: drive, blockedBeforeRequest: true)
             }
             return
         }
         busy = true; loadingEpisode = episode.id
-        withAnimation(.smooth(duration: 0.2)) { playbackIssue = nil }
+        withAnimation(.easeInOut(duration: 0.2)) { playbackIssue = nil }
         defer { busy = false; if !choosingQuality { loadingEpisode = nil } }
         do {
             let plan = try await client.preparePlayback(episode)
@@ -1538,7 +1574,7 @@ struct VideoDetailView: View {
         if !(error is CloudDriveLoginRequired) {
             Diagnostics.shared.failure("catalog", "play \(client.reportContext) flag=\(episode.flag)", error)
         }
-        withAnimation(.smooth(duration: 0.25)) {
+        withAnimation(.easeInOut(duration: 0.25)) {
             // Plugins report a missing or expired drive login in their own words ("夸克授权失败，请扫码登录");
             // say what happened and offer the sign-in instead of echoing them.
             if let login = error as? CloudDriveLoginRequired, let drive = CloudDrive(rawValue: login.rawValue) {
@@ -1602,7 +1638,7 @@ struct VideoDetailView: View {
             store.watchPageScopes.formUnion(watchScopes)
             PlayerOrientation.holdPortrait(true)
         }
-        .onChange(of: watchScopes) { old, new in
+        .legacyOnChange(of: watchScopes) { old, new in
             store.watchPageScopes.subtract(old.subtracting(new)); store.watchPageScopes.formUnion(new)
         }
         .onDisappear {
@@ -1612,7 +1648,7 @@ struct VideoDetailView: View {
             if fullScreen { fullScreen = false; PlayerOrientation.set(landscape: false) }
             PlayerOrientation.holdPortrait(false)
         }
-        .onChange(of: watchChannel == nil) { _, ended in
+        .legacyOnChange(of: watchChannel == nil) { _, ended in
             playerStarted = false
             if ended { playerSession = nil }
             if ended && fullScreen { setFullScreen(landscape: false) }
@@ -1645,7 +1681,7 @@ struct VideoDetailView: View {
 
     private func setFullScreen(landscape: Bool) {
         let entering = !fullScreen
-        withAnimation(.smooth(duration: 0.3)) { fullScreen = entering }
+        withAnimation(.easeInOut(duration: 0.3)) { fullScreen = entering }
         // A landscape picture turns the phone; a portrait one fills the screen upright.
         if !entering { PlayerOrientation.set(landscape: false) } else if landscape { PlayerOrientation.set(landscape: true) }
     }
@@ -1659,11 +1695,11 @@ struct VideoDetailView: View {
         let poster = video.poster != nil ? video : detail ?? video
         return WatchCoverBackdrop(poster: poster.poster, headers: poster.posterHeaders, loading: starting) { coverStatus($0) }
             .contentShape(Rectangle())
-            .onTapGesture { if starting { withAnimation(.smooth(duration: 0.25)) { coverBack.toggle() } } }
+            .onTapGesture { if starting { withAnimation(.easeInOut(duration: 0.25)) { coverBack.toggle() } } }
             .task(id: coverBack) {
                 guard coverBack else { return }
                 try? await Task.legacySleep(for: .seconds(3))
-                if !Task.isCancelled { withAnimation(.smooth(duration: 0.3)) { coverBack = false } }
+                if !Task.isCancelled { withAnimation(.easeInOut(duration: 0.3)) { coverBack = false } }
             }
             .overlay {
                 if !starting, let first {
@@ -1719,8 +1755,8 @@ struct VideoDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.smooth(duration: 0.45), value: tmdb.details)
-        .animation(.smooth(duration: 0.3), value: tmdb.phase)
+        .animation(.easeInOut(duration: 0.45), value: tmdb.details)
+        .animation(.easeInOut(duration: 0.3), value: tmdb.phase)
     }
 
     /// As in Bilibili's 选集: one row of episodes that scrolls sideways to the one playing, and All for the full list.
@@ -1766,7 +1802,7 @@ struct VideoDetailView: View {
                         .scrollPosition(id: $episodeScroll, anchor: .center)
                         .padding(.horizontal, -16)
                         .onAppear { episodeScroll = currentEpisodeID }
-                        .onChange(of: currentEpisodeID) { _, id in if let id { withAnimation { episodeScroll = id } } }
+                        .legacyOnChange(of: currentEpisodeID) { _, id in if let id { withAnimation { episodeScroll = id } } }
                     }
                 }
             }
@@ -1847,7 +1883,7 @@ struct VideoDetailView: View {
         let items = activeEpisodes
         let compact = items.allSatisfy { EpisodeRow.title($0.name).count <= 5 }
         let stills = watchStills(items)
-        return NavigationStack {
+        return NBNavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     watchLines
@@ -2029,6 +2065,7 @@ private struct EpisodeRow: View {
     }
     private var parts: (title: String, detail: String?) { Self.split(name) }
     var body: some View {
+        WithPerceptionTracking {
         let parts = parts
         let button = Button(action: action) {
             HStack(spacing: 10) {
@@ -2059,8 +2096,9 @@ private struct EpisodeRow: View {
         #else
         button.buttonStyle(.plain)
             .onHover { hovering = $0 }
-            .animation(.smooth(duration: 0.15), value: hovering)
+            .animation(.easeInOut(duration: 0.15), value: hovering)
         #endif
+        }
     }
 }
 

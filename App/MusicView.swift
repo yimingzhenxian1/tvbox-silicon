@@ -1,3 +1,4 @@
+import Perception
 import SwiftUI
 import TVCore
 
@@ -5,7 +6,7 @@ import TVCore
 /// found. With no search, the page offers to continue where listening stopped and lists what
 /// played recently.
 struct MusicView: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var query = ""
     /// The query Return was pressed for: its direct hit plays once the search knows it. Typing
     /// something else clears it.
@@ -21,6 +22,7 @@ struct MusicView: View {
     #endif
 
     var body: some View {
+        WithPerceptionTracking {
         let search = store.musicSearch
         ScrollView {
             LazyVStack(alignment: .leading, spacing: MusicLayout.rowSpacing) {
@@ -43,7 +45,7 @@ struct MusicView: View {
         }
         .screenBackdrop()
         .catalogSearchable(text: $query, prompt: L10n.text("Song, album or playlist"))
-        .onChange(of: query) { _, text in
+        .legacyOnChange(of: query) { _, text in
             if text.trimmingCharacters(in: .whitespacesAndNewlines) != autoPlayQuery { autoPlayQuery = nil }
             #if os(tvOS)
             // As in Global Search: typing only edits the query, and results change when it is
@@ -57,7 +59,7 @@ struct MusicView: View {
             autoPlayQuery = search.kind == .songs || search.kind == .top ? query.trimmingCharacters(in: .whitespacesAndNewlines) : nil
             search.search(query, kind: Self.searchKind, immediately: true); playDirectHitIfReady()
         }
-        .onChange(of: search.busy) {
+        .legacyOnChange(of: search.busy) {
             playDirectHitIfReady()
             #if DEBUG
             if !search.busy, UserDefaults.standard.bool(forKey: "qaMusicOpen"), qaOpened == nil { qaOpened = search.collections.first }
@@ -71,12 +73,12 @@ struct MusicView: View {
         #if DEBUG && os(tvOS)
         // `-qaNowPlayingTab 1` (with `-qaMusicPlay 1 -qaMusicStayOnPage 1`) moves to the sidebar's
         // Now Playing once the song is loaded, for screenshots.
-        .onChange(of: store.music.track != nil) { _, loaded in
+        .legacyOnChange(of: store.music.track != nil) { _, loaded in
             if loaded, UserDefaults.standard.bool(forKey: "qaNowPlayingTab") { store.section = .nowPlaying }
         }
         #endif
         #if DEBUG
-        .navigationDestination(isPresented: $qaDownloads) {
+        .nbNavigationDestination(isPresented: $qaDownloads) {
             #if os(macOS)
             MusicDownloadsView().musicBar()
             #else
@@ -85,7 +87,7 @@ struct MusicView: View {
         }
         #endif
         #if DEBUG
-        .navigationDestination(item: $qaOpened) {
+        .nbNavigationDestination(item: $qaOpened) {
             #if os(macOS)
             MusicCollectionView(collection: $0).musicBar()
             #else
@@ -122,6 +124,7 @@ struct MusicView: View {
             // `-qaMusicSettings 1` opens Music Settings.
             if UserDefaults.standard.bool(forKey: "qaMusicSettings") { showsSettings = true }
             #endif
+        }
         }
     }
 
@@ -221,10 +224,11 @@ enum MusicLayout {
 
 /// The Music page with nothing searched: continue listening, and what played recently.
 private struct MusicHome: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let openSettings: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         let library = store.music.library
         let resumable = store.music.track == nil ? library.resumePoint : nil
         if let point = resumable, let track = point.queue.current {
@@ -253,15 +257,17 @@ private struct MusicHome: View {
                       action: L10n.text("Music Settings"), actionSymbol: "slider.horizontal.3", perform: openSettings)
                 .frame(minHeight: 420)
         }
+        }
     }
 }
 
 private struct MusicContinueCard: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let point: MusicResumePoint
     let track: MusicTrack
 
     var body: some View {
+        WithPerceptionTracking {
         Button { store.music.resume() } label: {
             HStack(spacing: MusicLayout.gap) {
                 MusicArtwork(url: track.artwork, size: MusicLayout.art * 1.4)
@@ -280,11 +286,12 @@ private struct MusicContinueCard: View {
             .contentShape(Rectangle())
         }
         .cardButton()
+        }
     }
 }
 
 struct MusicTrackRow: View {
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     let track: MusicTrack
     /// Its place in an album or playlist, shown instead of the cover.
     var number: Int?
@@ -293,6 +300,7 @@ struct MusicTrackRow: View {
     let action: () -> Void
 
     var body: some View {
+        WithPerceptionTracking {
         let current = store.music.track?.id == track.id
         Button(action: action) {
             HStack(spacing: MusicLayout.gap) {
@@ -344,6 +352,7 @@ struct MusicTrackRow: View {
             MusicDownloadMenuItems(tracks: [track])
         }
         .accessibilityLabel(Text([track.title, track.artistLine].joined(separator: ", ")))
+        }
     }
 }
 
@@ -351,6 +360,7 @@ private struct MusicCollectionRow: View {
     let collection: MusicCollection
 
     var body: some View {
+        WithPerceptionTracking {
         RouteLink {
             MusicCollectionView(collection: collection)
         } label: {
@@ -367,13 +377,14 @@ private struct MusicCollectionRow: View {
             .contentShape(Rectangle())
         }
         .glassRow()
+        }
     }
 }
 
 /// An album or playlist: its tracks, Play and Shuffle. Playing a track queues the whole list from it.
 struct MusicCollectionView: View {
     let collection: MusicCollection
-    @Environment(Store.self) private var store
+    @Perception.Environment(Store.self) private var store
     @State private var tracks: [MusicTrack] = []
     @State private var loading = false
     @State private var error: String?
@@ -384,6 +395,7 @@ struct MusicCollectionView: View {
     }
 
     var body: some View {
+        WithPerceptionTracking {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: MusicLayout.rowSpacing) {
                 #if os(tvOS)
@@ -436,6 +448,7 @@ struct MusicCollectionView: View {
                 MusicDownloadLibrary.shared.download(tracks, from: collection)
             }
             #endif
+        }
         }
     }
 
